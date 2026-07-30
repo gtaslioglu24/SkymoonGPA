@@ -1,0 +1,122 @@
+@import 'tailwindcss';
+
+/* Dark mode driven by a `.dark` class on <html> (manual toggle).
+   Uses :is() (not :where()) so dark utilities carry specificity and reliably
+   win over their base counterparts regardless of source order. */
+@custom-variant dark (&:is(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
+
+  /* Accent — a restrained claret / oxblood (academic, editorial) */
+  --color-brand-50: #fbf2f3;
+  --color-brand-100: #f6e1e4;
+  --color-brand-200: #ecc4cb;
+  --color-brand-300: #db9aa5;
+  --color-brand-400: #c66c7c;
+  --color-brand-500: #ad4759;
+  --color-brand-600: #8f2c3d;
+  --color-brand-700: #782333;
+  --color-brand-800: #661f2c;
+  --color-brand-900: #571d28;
+
+  /* Warm paper & ink surfaces */
+  --color-paper: #f4f1ea;
+  --color-paper-raised: #ffffff;
+  --color-line: #e6e0d5;
+  /* Dark theme surfaces — warm espresso brown */
+  --color-ink-950: #1f150f;
+  --color-ink-900: #2a1f16;
+  --color-ink-800: #36281d;
+  --color-ink-line: #423121;
+
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+    /* Reserve the scrollbar gutter so switching tabs never reflows the layout. */
+    scrollbar-gutter: stable;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    font-feature-settings: 'cv11', 'ss01';
+    @apply bg-paper text-stone-800 antialiased;
+    min-height: 100vh;
+  }
+
+  .dark body {
+    @apply bg-ink-950 text-stone-200;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-serif);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-brand-600) 22%, transparent);
+  }
+
+  /* Keyboard focus ring for interactive elements (a11y) */
+  button:focus-visible,
+  a:focus-visible,
+  select:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+
+  /* Remove number input spinners for a cleaner look */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+}
+
+@layer utilities {
+  /* Flat, editorial card: hairline border, no glass/blur */
+  .surface {
+    @apply rounded-2xl border border-line bg-paper-raised;
+  }
+  .dark .surface {
+    @apply border-ink-line bg-ink-900;
+  }
+
+  .num {
+    font-variant-numeric: lining-nums tabular-nums;
+  }
+
+  .font-serif {
+    font-family: var(--font-serif);
+  }
+
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-up {
+    animation: fade-up 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  /* Opacity-only — used on tab switch so the row above never shifts vertically. */
+  .animate-fade {
+    animation: fade 0.25s ease both;
+  }
+}
