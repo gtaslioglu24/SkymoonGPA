@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { THRESHOLDS } from '../lib/grades';
+import { gpaBand } from '../lib/grades';
 import { useI18n } from '../lib/i18n';
 import { cx } from '../lib/cx';
 
@@ -35,11 +35,11 @@ export function ThresholdNote({ gpa }: { gpa: number }) {
   const { t } = useI18n();
   if (gpa <= 0) return null;
 
-  const kind =
-    gpa >= THRESHOLDS.honor ? 'honor' : gpa >= THRESHOLDS.graduation ? 'safe' : 'warning';
+  const kind = gpaBand(gpa);
 
   const dot = {
-    honor: 'bg-emerald-500',
+    vehbiKoc: 'bg-emerald-500',
+    deansHonor: 'bg-emerald-600/70',
     safe: 'bg-stone-400 dark:bg-stone-500',
     warning: 'bg-brand-600',
   }[kind];

@@ -144,6 +144,17 @@ ARTS 210  Spring Poetry of 1900  3  6  B
     expect(r.semesters[0].courses[0]).toMatchObject({ credits: 4, grade: 'A-' });
   });
 
+  it('does not leave the grade inside the course title', () => {
+    // The title ends at whichever comes first, the credits or the grade.
+    const r = parseTranscript(`MATH 103  Calculus I  A-  4.00`);
+    expect(r.semesters[0].courses[0]).toMatchObject({
+      code: 'MATH 103',
+      name: 'Calculus I',
+      credits: 4,
+      grade: 'A-',
+    });
+  });
+
   it('flags repeated course codes', () => {
     const r = parseTranscript(`
 2022-2023 Fall

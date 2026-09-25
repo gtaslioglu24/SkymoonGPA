@@ -12,6 +12,17 @@ import { Button, IconButton, SelectField } from './ui';
 export type ImportMode = 'replace' | 'append';
 
 /**
+ * How many rows the preview table will draw.
+ *
+ * Parsing is not the cost here — 50k lines parse in well under a tenth of a
+ * second. Drawing them is: one <tr> per course, unbounded, is what turns a
+ * mis-paste (a whole PDF, a log file) into a frozen tab. A real transcript is
+ * well under this, so the cap is invisible in normal use. Rows past it are
+ * still imported; they just aren't drawn, which the note below says out loud.
+ */
+const PREVIEW_ROW_LIMIT = 300;
+
+/**
  * Paste-a-transcript importer.
  *
  * Everything is shown before anything is imported. The parser is heuristic —
@@ -53,6 +64,40 @@ export function TranscriptImport({
   );
 
   const keptCount = kept.reduce((n, s) => n + s.courses.length, 0);
+
+  // Semester order and course order are preserved and rows are taken from the
+  // front, so a row's `si:ci` key still identifies the same course — the remove
+  // buttons keep working on exactly the rows they are attached to.
+  const previewSemesters = useMemo(() => {
+    const out: ParsedSemester[] = [];
+    let budget = PREVIEW_ROW_LIMIT;
+    for (const s of parsed.semesters) {
+      if (budget <= 0) break;
+      out.push({ ...s, courses: s.courses.slice(0, budget) });
+      budget -= Math.min(budget, s.courses.length);
+    }
+    return out;
+  }, [parsed]);
+
+  const hiddenRows = parsed.totalCourses - previewSemesters.reduce((n, s) => n + s.courses.length, 0);
+
+  /**
+   * A transcript may state its cumulative GPA, its total credits, both, or
+   * neither. One sentence covering all four cases printed "toplam — kredi" when
+   * only the GPA was found, so each case gets its own wording.
+   */
+  const summaryNote = (() => {
+    const { cumulativeGpa: gpa, totalCredits: credits } = parsed.summary;
+    if (gpa !== undefined && credits !== undefined) {
+      return t.transcript.summaryFound
+        .replace('{gpa}', gpa.toFixed(2))
+        .replace('{credits}', String(credits));
+    }
+    if (gpa !== undefined) return t.transcript.summaryGpaOnly.replace('{gpa}', gpa.toFixed(2));
+    if (credits !== undefined)
+      return t.transcript.summaryCreditsOnly.replace('{credits}', String(credits));
+    return null;
+  })();
 
   const reset = () => {
     setText('');
@@ -185,7 +230,7 @@ export function TranscriptImport({
                     </tr>
                   </thead>
                   <tbody>
-                    {parsed.semesters.map((s, si) => (
+                    {previewSemesters.map((s, si) => (
                       <Fragment key={si}>
                         <tr className="bg-stone-50 dark:bg-white/[0.03]">
                           <th
@@ -244,6 +289,12 @@ export function TranscriptImport({
                 </table>
               </div>
 
+              {hiddenRows > 0 && (
+                <p className="mt-2 text-xs leading-relaxed text-muted">
+                  {t.transcript.previewTruncated.replace('{n}', String(hiddenRows))}
+                </p>
+              )}
+
               {/* Warnings */}
               <div className="mt-3 space-y-2">
                 {parsed.duplicateCodes.length > 0 && (
@@ -282,12 +333,9 @@ export function TranscriptImport({
                   </div>
                 )}
 
-                {(parsed.summary.cumulativeGpa !== undefined ||
-                  parsed.summary.totalCredits !== undefined) && (
+                {summaryNote && (
                   <p className="rounded-lg bg-brand-50/70 px-3 py-2 text-xs leading-relaxed text-brand-900 dark:bg-brand-500/10 dark:text-brand-100">
-                    {t.transcript.summaryFound
-                      .replace('{gpa}', parsed.summary.cumulativeGpa?.toFixed(2) ?? '—')
-                      .replace('{credits}', String(parsed.summary.totalCredits ?? '—'))}
+                    {summaryNote}
                   </p>
                 )}
               </div>

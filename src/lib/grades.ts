@@ -64,12 +64,41 @@ export function gradePoints(letter: string): number | null {
 /** Letters that enter the GPA, ordered best → worst (for dropdowns). */
 export const GPA_GRADE_LETTERS = GPA_GRADES.map((g) => g.letter);
 
-/** GPA thresholds that matter at Koç. */
+/**
+ * GPA thresholds that matter at Koç.
+ *
+ * The two honour rolls are awarded on the *semester* average, not the
+ * cumulative one, and each carries its own certificate — so they are separate
+ * numbers rather than one "honour" line. `deansHonor` is the lower of the two:
+ * anything at or above `vehbiKoc` clears it as well, so callers must test the
+ * higher threshold first.
+ */
 export const THRESHOLDS = {
   /** Minimum cumulative GPA required to graduate. */
   graduation: 2.0,
-  /** Vehbi Koç Scholar / honor threshold. */
-  honor: 3.5,
+  /** Dean's Honour List — Dekan Onur Belgesi. */
+  deansHonor: 3.25,
+  /** Vehbi Koç Honour List — Vehbi Koç Onur Belgesi, the higher of the two. */
+  vehbiKoc: 3.75,
   /** Max attainable GPA. */
   max: 4.0,
 } as const;
+
+/** Which threshold band a GPA falls in. Doubles as the i18n key for the note. */
+export type GpaBand = 'vehbiKoc' | 'deansHonor' | 'safe' | 'warning';
+
+/**
+ * Classify a GPA against the thresholds above.
+ *
+ * Lives here, next to the numbers it compares against, rather than in the
+ * component that renders the result: it is a rule of the university, it is what
+ * the UI claims about a student's record, and a rule the app states out loud is
+ * a rule worth a test. Ordered highest first — 3.75 clears 3.25 too, and the
+ * note should name the better certificate.
+ */
+export function gpaBand(gpa: number): GpaBand {
+  if (gpa >= THRESHOLDS.vehbiKoc) return 'vehbiKoc';
+  if (gpa >= THRESHOLDS.deansHonor) return 'deansHonor';
+  if (gpa >= THRESHOLDS.graduation) return 'safe';
+  return 'warning';
+}

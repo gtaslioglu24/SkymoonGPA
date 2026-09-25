@@ -75,7 +75,8 @@ export function AnimatedNumber({
 }
 
 /**
- * A restrained 0–4 GPA scale with graduation (2.00) and honor (3.50) marks.
+ * A restrained 0–4 GPA scale with graduation (2.00), Dean's Honour (3.25) and
+ * Vehbi Koç Honour (3.75) marks.
  * Optionally shows a hairline "ghost" tick for the starting value (delta).
  */
 export function GpaBar({
@@ -101,7 +102,7 @@ export function GpaBar({
           className="h-full rounded-full bg-brand-700 transition-all duration-500 dark:bg-brand-400"
           style={{ width: pct(value) }}
         />
-        {[THRESHOLDS.graduation, THRESHOLDS.honor].map((tk) => (
+        {[THRESHOLDS.graduation, THRESHOLDS.deansHonor, THRESHOLDS.vehbiKoc].map((tk) => (
           <span
             key={tk}
             className="absolute top-1/2 h-3 w-px -translate-y-1/2 bg-stone-400/70 dark:bg-white/30"
@@ -116,14 +117,24 @@ export function GpaBar({
           />
         )}
       </div>
+      {/* Each label is centred on the tick it names rather than spaced evenly:
+          3.25 and 3.75 sit close together near the right end, and
+          `justify-between` would have spread them across the bar pointing at
+          nothing. 0.0 is pinned to the edge so it can't hang off the left side.
+
+          There is deliberately no 4.0 label: it would collide with 3.75, which
+          is only 6.25% of the bar away, and the scale maximum is already spelled
+          out as "/ 4.00" beside every figure this bar sits under. */}
       <div
         aria-hidden="true"
-        className="mt-2 flex justify-between text-[0.65rem] font-medium tracking-wide text-muted"
+        className="relative mt-2 h-4 text-[0.65rem] font-medium tracking-wide text-muted"
       >
-        <span>0.0</span>
-        <span>2.0</span>
-        <span>3.5</span>
-        <span>4.0</span>
+        <span className="absolute left-0">0.0</span>
+        {[THRESHOLDS.graduation, THRESHOLDS.deansHonor, THRESHOLDS.vehbiKoc].map((tk) => (
+          <span key={tk} className="absolute -translate-x-1/2" style={{ left: pct(tk) }}>
+            {tk.toFixed(2)}
+          </span>
+        ))}
       </div>
     </div>
   );

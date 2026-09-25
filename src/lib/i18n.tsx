@@ -85,7 +85,8 @@ const tr = {
     gpaCredits: 'GPA kredisi',
     enterToSee: 'Sonucu görmek için ders ekle',
     enterStanding: 'Önce mevcut GPA’nı ve toplam kredini gir',
-    honor: 'Vehbi Koç Onur Öğrencisi eşiğindesin (3.50+).',
+    vehbiKoc: 'Vehbi Koç Onur Belgesi eşiğindesin (3.75+).',
+    deansHonor: 'Dekan Onur Belgesi eşiğindesin (3.25+).',
     safe: 'Mezuniyet eşiğinin (2.00) üzerindesin.',
     warning: 'Mezuniyet eşiğinin (2.00) altındasın — dikkat.',
   },
@@ -121,6 +122,8 @@ const tr = {
     privacy:
       'Yapıştırdığın metin cihazından çıkmaz, hiçbir yere gönderilmez ve kaydedilmez — yalnızca tarayıcında okunur.',
     preview: 'Bulunan dersler',
+    previewTruncated:
+      'Liste uzun olduğu için ilk 300 satır gösteriliyor. Kalan {n} ders de içe aktarılacak.',
     coursesFound: '{n} ders, {s} dönem bulundu',
     noneFound:
       'Bu metinde ders satırı bulunamadı. Ders kodu, kredi ve harf notunun aynı satırda olduğu bir bölüm yapıştırmayı dene.',
@@ -136,6 +139,10 @@ const tr = {
       'aynı ders birden fazla kez görünüyor. Bu sekme tüm denemeleri ortalamaya katar; resmî CGPA’nda tekrar kuralı farklı işleyebilir.',
     summaryFound:
       'Transkriptte kümülatif GPA {gpa} ve toplam {credits} kredi bulundu. Bunları “Mevcut Durumun” alanına kendin girebilirsin.',
+    summaryGpaOnly:
+      'Transkriptte kümülatif GPA {gpa} bulundu. Bunu “Mevcut Durumun” alanına kendin girebilirsin.',
+    summaryCreditsOnly:
+      'Transkriptte toplam {credits} kredi bulundu. Bunu “Mevcut Durumun” alanına kendin girebilirsin.',
     unnamedSemester: 'Dönem adı yok',
     modeLabel: 'İçe aktarma biçimi',
     modeAppend: 'Mevcutlara ekle',
@@ -265,7 +272,8 @@ const en: Dict = {
     gpaCredits: 'GPA credits',
     enterToSee: 'Add a course to see the result',
     enterStanding: 'First enter your current GPA and total credits',
-    honor: 'You’re at the Vehbi Koç Scholar threshold (3.50+).',
+    vehbiKoc: 'You’re at the Vehbi Koç Honour List threshold (3.75+).',
+    deansHonor: 'You’re at the Dean’s Honour List threshold (3.25+).',
     safe: 'You’re above the graduation threshold (2.00).',
     warning: 'Below the graduation threshold (2.00) — watch out.',
   },
@@ -301,6 +309,8 @@ const en: Dict = {
     privacy:
       'The text you paste never leaves your device, is never sent anywhere, and is not saved — it is only read in your browser.',
     preview: 'Courses found',
+    previewTruncated:
+      'The list is long, so only the first 300 rows are shown. The remaining {n} courses will still be imported.',
     coursesFound: 'Found {n} courses across {s} semesters',
     noneFound:
       'No course rows found in this text. Try pasting a section where the course code, credits and letter grade sit on the same line.',
@@ -316,6 +326,10 @@ const en: Dict = {
       'appears more than once. This tab counts every attempt; your official CGPA may apply a repeat rule instead.',
     summaryFound:
       'The transcript states a cumulative GPA of {gpa} over {credits} credits. You can enter those under “Your Current Standing”.',
+    summaryGpaOnly:
+      'The transcript states a cumulative GPA of {gpa}. You can enter it under “Your Current Standing”.',
+    summaryCreditsOnly:
+      'The transcript states {credits} total credits. You can enter it under “Your Current Standing”.',
     unnamedSemester: 'Unnamed semester',
     modeLabel: 'Import mode',
     modeAppend: 'Add to existing',

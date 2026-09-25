@@ -177,11 +177,15 @@ function parseCourseLine(line: string, creditColumn: CreditColumn): ParsedCourse
         ? Math.min(...pair)
         : Math.max(...pair);
 
-  // The title is whatever sits between the code and the first number.
+  // The title is whatever sits between the code and the first number — or the
+  // grade, when the layout puts that first. Without the `min`, a row like
+  // "MATH 103  Calculus I  A-  4.00" hands back "Calculus I A-" as the title,
+  // because the first number sits *after* the grade.
   const firstNumberIndex = tokens.findIndex(
     (t, i) => i >= cursor && CREDIT_NUMBER.test(t) && num(t) > 0,
   );
-  const nameTokens = tokens.slice(cursor, firstNumberIndex === -1 ? gradeIndex : firstNumberIndex);
+  const nameEnd = firstNumberIndex === -1 ? gradeIndex : Math.min(firstNumberIndex, gradeIndex);
+  const nameTokens = tokens.slice(cursor, nameEnd);
   const name = nameTokens.join(' ').trim();
 
   return {
