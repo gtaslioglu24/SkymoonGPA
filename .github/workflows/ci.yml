@@ -1,0 +1,33 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      # `npm ci` installs exactly what package-lock.json pins — a build can't
+      # silently pick up a different dependency than the one that was reviewed.
+      - run: npm ci
+
+      - run: npm run lint
+      - run: npm run test
+      - run: npm run build
+
+      # The calculation engine is the whole product; a known-vulnerable
+      # dependency shouldn't reach production unnoticed.
+      - name: Audit dependencies
+        run: npm audit --audit-level=high

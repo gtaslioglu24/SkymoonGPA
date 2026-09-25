@@ -1,32 +1,7 @@
-import { calcGpaFromCourses, type CourseInput } from '../lib/gpa';
 import { useI18n } from '../lib/i18n';
+import { resolveStanding, type StandingMode, type StandingState } from '../lib/standing';
 import { CourseList } from './CourseList';
 import { Label, NumberField, Segmented } from './ui';
-
-export type StandingMode = 'simple' | 'detailed';
-
-export interface StandingState {
-  mode: StandingMode;
-  gpa: number | '';
-  credits: number | '';
-  pastCourses: CourseInput[];
-}
-
-export const emptyStanding: StandingState = {
-  mode: 'simple',
-  gpa: '',
-  credits: '',
-  pastCourses: [],
-};
-
-/** Resolve the effective current GPA and GPA-credits from either input mode. */
-export function resolveStanding(s: StandingState): { gpa: number; credits: number } {
-  if (s.mode === 'detailed') {
-    const r = calcGpaFromCourses(s.pastCourses);
-    return { gpa: r.gpa, credits: r.gpaCredits };
-  }
-  return { gpa: s.gpa === '' ? 0 : s.gpa, credits: s.credits === '' ? 0 : s.credits };
-}
 
 export function CurrentStanding({
   value,
@@ -45,12 +20,13 @@ export function CurrentStanding({
           <h2 className="font-serif text-xl font-medium text-stone-900 dark:text-stone-50">
             {t.standing.title}
           </h2>
-          <p className="mt-0.5 text-sm text-stone-500 dark:text-stone-400">
+          <p className="mt-0.5 text-sm text-muted">
             {value.mode === 'simple' ? t.standing.simpleHint : t.standing.detailedHint}
           </p>
         </div>
         <Segmented<StandingMode>
           size="sm"
+          aria-label={t.standing.title}
           value={value.mode}
           onChange={(mode) => onChange({ ...value, mode })}
           options={[
@@ -63,8 +39,9 @@ export function CurrentStanding({
       {value.mode === 'simple' ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <Label>{t.standing.currentGpa}</Label>
+            <Label htmlFor="standing-gpa">{t.standing.currentGpa}</Label>
             <NumberField
+              id="standing-gpa"
               value={value.gpa}
               onChange={(gpa) => onChange({ ...value, gpa })}
               min={0}
@@ -74,15 +51,18 @@ export function CurrentStanding({
             />
           </div>
           <div>
-            <Label>{t.standing.currentCredits}</Label>
+            <Label htmlFor="standing-credits">{t.standing.currentCredits}</Label>
             <NumberField
+              id="standing-credits"
               value={value.credits}
               onChange={(credits) => onChange({ ...value, credits })}
               min={0}
+              max={1000}
               step={1}
               placeholder="60"
+              aria-describedby="standing-credits-hint"
             />
-            <p className="mt-1.5 text-xs text-stone-400 dark:text-stone-500">
+            <p id="standing-credits-hint" className="mt-1.5 text-xs text-muted">
               {t.standing.currentCreditsHint}
             </p>
           </div>
@@ -101,7 +81,7 @@ export function CurrentStanding({
               </span>
               <span className="text-sm font-bold tabular-nums text-brand-800 dark:text-brand-100">
                 GPA {resolved.gpa.toFixed(2)} · {resolved.credits}{' '}
-                <span className="font-medium opacity-70">{t.result.gpaCredits}</span>
+                <span className="font-medium opacity-80">{t.result.gpaCredits}</span>
               </span>
             </div>
           )}

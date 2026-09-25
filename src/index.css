@@ -1,13 +1,68 @@
 @import 'tailwindcss';
 
+/* ---------------------------------------------------------------------------
+   Self-hosted fonts.
+
+   Previously loaded from fonts.googleapis.com, which sent every visitor's IP
+   and user-agent to a third party — awkward for a tool whose selling point is
+   that nothing leaves your device. Same files, same origin: no third-party
+   request, no extra DNS/TLS handshake, and a CSP that needs no external hosts.
+   Only the latin + latin-ext subsets ship, since that is what Turkish and
+   English need (ı ğ ş İ live in latin-ext).
+--------------------------------------------------------------------------- */
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('/fonts/inter-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Inter Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('/fonts/inter-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+    U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+@font-face {
+  font-family: 'Fraunces Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('/fonts/fraunces-latin-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+    U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+    U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: 'Fraunces Variable';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url('/fonts/fraunces-latin-ext-wght-normal.woff2') format('woff2-variations');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304,
+    U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0,
+    U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
 /* Dark mode driven by a `.dark` class on <html> (manual toggle).
    Uses :is() (not :where()) so dark utilities carry specificity and reliably
    win over their base counterparts regardless of source order. */
 @custom-variant dark (&:is(.dark, .dark *));
 
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-serif: 'Fraunces', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Fraunces Variable', ui-serif, Georgia, 'Times New Roman', serif;
 
   /* Accent — a restrained claret / oxblood (academic, editorial) */
   --color-brand-50: #fbf2f3;
@@ -20,6 +75,18 @@
   --color-brand-700: #782333;
   --color-brand-800: #661f2c;
   --color-brand-900: #571d28;
+
+  /* -------------------------------------------------------------------------
+     Muted text.
+
+     `stone-400` on the paper background measures 2.3:1 — below the 4.5:1 WCAG
+     AA floor, and it was being used for the legal disclaimer, of all things.
+     These are the only greys allowed for real text; both clear AA against
+     their surface, and the `.dark` block below re-points them per theme so a
+     single `text-muted` works in both.
+  ------------------------------------------------------------------------- */
+  --color-muted: #5c5349; /* 6.6:1 on paper */
+  --color-muted-strong: #4a423a; /* 9.2:1 on paper */
 
   /* Warm paper & ink surfaces */
   --color-paper: #f4f1ea;
@@ -36,6 +103,14 @@
 }
 
 @layer base {
+  /* Re-point the muted tokens for the dark surface. Utilities resolve
+     `var(--color-muted)` at use time, so this alone flips every one of them —
+     no `.dark .text-muted` overrides fighting the cascade. */
+  .dark {
+    --color-muted: #b0a79c; /* 6.7:1 on ink-900 */
+    --color-muted-strong: #cbc3b8; /* 9.6:1 on ink-900 */
+  }
+
   html {
     -webkit-text-size-adjust: 100%;
     scroll-behavior: smooth;
@@ -47,7 +122,8 @@
     font-family: var(--font-sans);
     font-feature-settings: 'cv11', 'ss01';
     @apply bg-paper text-stone-800 antialiased;
-    min-height: 100vh;
+    /* dvh, not vh: on mobile, vh includes the retracting browser chrome. */
+    min-height: 100dvh;
   }
 
   .dark body {
@@ -67,6 +143,7 @@
   /* Keyboard focus ring for interactive elements (a11y) */
   button:focus-visible,
   a:focus-visible,
+  input:focus-visible,
   select:focus-visible,
   [tabindex]:focus-visible {
     outline: 2px solid var(--color-brand-500);
@@ -99,8 +176,89 @@
     font-variant-numeric: lining-nums tabular-nums;
   }
 
+  /* -------------------------------------------------------------------------
+     A scroll container with no visible scrollbar.
+
+     For the tab strip. Two reasons beyond looks:
+
+     1. Where the OS draws *classic* (space-taking) scrollbars — Windows, most
+        Linux — a horizontal scrollbar eats ~15px from inside the container's
+        own height. That both clips the active tab's underline and manufactures
+        vertical overflow in a strip that has no business scrolling vertically.
+        No scrollbar, no stolen height.
+     2. The strip only overflows on narrow/touch screens, where swiping is the
+        natural gesture and a bar earns nothing. On desktop the tabs fit.
+
+     Keyboard users are unaffected: arrow keys move between tabs and the browser
+     scrolls the focused one into view.
+  ------------------------------------------------------------------------- */
+  .no-scrollbar {
+    scrollbar-width: none; /* Firefox */
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome / Safari / Edge */
+  }
+
+  /* Scroll-edge fade for the tab strip.
+
+     With the scrollbar hidden there is nothing to say the strip continues past
+     the viewport — on a phone the last tab is simply cut off by the edge and
+     reads as a layout bug rather than an invitation to swipe. These overlays
+     sit above the strip's ends and are toggled by App.tsx as it scrolls, so a
+     fade only ever appears on a side that actually has more content.
+
+     The gradient has to resolve to the page background, not a fixed colour, or
+     it smears grey over the paper in one theme and over the espresso in the
+     other. `transparent` is avoided as a gradient stop: Safari interpolates it
+     through transparent *black*, which greys the middle of the fade. */
+  .scroll-fade {
+    pointer-events: none;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2.5rem;
+    opacity: 0;
+    transition: opacity 0.15s ease;
+  }
+  .scroll-fade[data-visible='true'] {
+    opacity: 1;
+  }
+  .scroll-fade-start {
+    left: 0;
+    background: linear-gradient(to right, var(--color-paper), rgb(244 241 234 / 0));
+  }
+  .scroll-fade-end {
+    right: 0;
+    background: linear-gradient(to left, var(--color-paper), rgb(244 241 234 / 0));
+  }
+  .dark .scroll-fade-start {
+    background: linear-gradient(to right, var(--color-ink-950), rgb(31 21 15 / 0));
+  }
+  .dark .scroll-fade-end {
+    background: linear-gradient(to left, var(--color-ink-950), rgb(31 21 15 / 0));
+  }
+
+  /* Held on <html> for the single frame in which the theme flips.
+
+     Inputs, buttons and tabs carry `transition` so their hover and focus states
+     ease. On a theme toggle that same transition cross-fades their colours over
+     ~150ms while untransitioned surfaces — the page background, the cards —
+     repaint at once. For that moment a light card holds dark inputs, which
+     looks like a rendering fault. Colour changes on a theme switch should land
+     in one frame; the hover transitions come straight back afterwards. */
+  .theme-switching *,
+  .theme-switching *::before,
+  .theme-switching *::after {
+    transition: none !important;
+  }
+
   .font-serif {
     font-family: var(--font-serif);
+  }
+
+  /* Bottom sticky bar clears the iOS home indicator. */
+  .pb-safe {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
   }
 
   @keyframes fade-up {
@@ -118,5 +276,21 @@
   /* Opacity-only — used on tab switch so the row above never shifts vertically. */
   .animate-fade {
     animation: fade 0.25s ease both;
+  }
+}
+
+/* Respect the OS "reduce motion" setting: no counting numbers, no slides, no
+   smooth scrolling. Everything still works — it just arrives instantly. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

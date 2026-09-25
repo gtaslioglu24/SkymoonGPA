@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState, type KeyboardEvent } from 'react';
 import { THRESHOLDS } from '../lib/grades';
 import type { SemesterPoint } from '../lib/semesters';
 import { useI18n } from '../lib/i18n';
@@ -10,17 +10,22 @@ const PAD = { top: 24, right: 52, bottom: 34, left: 12 };
 /**
  * Single-series line chart of cumulative GPA across semesters. Threshold guides
  * (2.00 graduation, 3.50 honor) are recessive references; the active semester is
- * revealed on hover with a crosshair + tooltip. No legend — the title names the
- * one series (per dataviz guidance).
+ * revealed on hover, tap or keyboard focus with a crosshair + tooltip. No legend
+ * — the title names the one series (per dataviz guidance).
+ *
+ * The same numbers are also emitted as a plain table for screen readers: a chart
+ * whose only affordance is hovering excludes both keyboard and touch users.
  */
 export function GpaTrendChart({ points }: { points: SemesterPoint[] }) {
   const { t } = useI18n();
   const [active, setActive] = useState<number | null>(null);
+  const titleId = useId();
+  const descId = useId();
 
   const graded = points.filter((p) => p.cumulative !== null);
   if (graded.length === 0) {
     return (
-      <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-line text-sm text-stone-400 dark:border-ink-line dark:text-stone-500">
+      <div className="flex h-40 items-center justify-center rounded-lg border border-dashed border-line text-sm text-muted dark:border-ink-line">
         {t.semesters.chartEmpty}
       </div>
     );
@@ -52,10 +57,35 @@ export function GpaTrendChart({ points }: { points: SemesterPoint[] }) {
 
   const lastIdx = linePts[linePts.length - 1].i;
   const activePoint = active !== null ? points[active] : null;
+  const last = points[lastIdx];
+
+  /** Move focus between markers with the arrow keys. */
+  const onKeyDown = (e: KeyboardEvent, k: number) => {
+    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+    e.preventDefault();
+    const next = e.key === 'ArrowRight' ? k + 1 : k - 1;
+    if (next < 0 || next >= linePts.length) return;
+    const el = document.getElementById(`${titleId}-pt-${next}`);
+    el?.focus();
+  };
 
   return (
     <div className="relative">
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ aspectRatio: `${W} / ${H}` }}>
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        className="w-full"
+        style={{ aspectRatio: `${W} / ${H}` }}
+        role="img"
+        aria-labelledby={`${titleId} ${descId}`}
+      >
+        <title id={titleId}>{t.semesters.chartTitle}</title>
+        <desc id={descId}>
+          {t.semesters.chartDesc
+            .replace('{n}', String(graded.length))
+            .replace('{first}', (graded[0].cumulative as number).toFixed(2))
+            .replace('{last}', (last.cumulative as number).toFixed(2))}
+        </desc>
+
         {/* Threshold guides */}
         {guides.map((g) => (
           <g key={g}>
@@ -72,7 +102,7 @@ export function GpaTrendChart({ points }: { points: SemesterPoint[] }) {
               x={W - PAD.right + 8}
               y={yFor(g)}
               dominantBaseline="middle"
-              className="fill-stone-400 dark:fill-stone-500"
+              className="fill-stone-500 dark:fill-stone-400"
               fontSize={12}
             >
               {g.toFixed(2)}
@@ -102,52 +132,59 @@ export function GpaTrendChart({ points }: { points: SemesterPoint[] }) {
           strokeLinecap="round"
         />
 
-        {/* Markers + labels + hover hit areas */}
-        {points.map((p, i) =>
-          p.cumulative === null ? null : (
-            <g key={p.id}>
-              <circle
-                cx={xFor(i)}
-                cy={yFor(p.cumulative)}
-                r={4}
-                className="fill-brand-600 stroke-paper-raised dark:fill-brand-400 dark:stroke-ink-900"
-                strokeWidth={2}
-              />
-              {i === lastIdx && (
-                <text
-                  x={xFor(i) - 9}
-                  y={yFor(p.cumulative) - 10}
-                  textAnchor="end"
-                  className="fill-stone-900 dark:fill-stone-50"
-                  fontSize={15}
-                  fontWeight={600}
-                  style={{ fontVariantNumeric: 'tabular-nums' }}
-                >
-                  {p.cumulative.toFixed(2)}
-                </text>
-              )}
-              {/* x-axis label */}
+        {/* Markers + labels + hover/tap/focus hit areas */}
+        {linePts.map(({ p, i }, k) => (
+          <g key={p.id}>
+            <circle
+              cx={xFor(i)}
+              cy={yFor(p.cumulative as number)}
+              r={4}
+              className="fill-brand-600 stroke-paper-raised dark:fill-brand-400 dark:stroke-ink-900"
+              strokeWidth={2}
+            />
+            {i === lastIdx && (
               <text
-                x={xFor(i)}
-                y={H - PAD.bottom + 20}
-                textAnchor="middle"
-                className="fill-stone-400 dark:fill-stone-500"
-                fontSize={12}
+                x={xFor(i) - 9}
+                y={yFor(p.cumulative as number) - 10}
+                textAnchor="end"
+                className="fill-stone-900 dark:fill-stone-50"
+                fontSize={15}
+                fontWeight={600}
+                style={{ fontVariantNumeric: 'tabular-nums' }}
               >
-                {shorten(p.name)}
+                {(p.cumulative as number).toFixed(2)}
               </text>
-              {/* hit area */}
-              <circle
-                cx={xFor(i)}
-                cy={yFor(p.cumulative)}
-                r={18}
-                fill="transparent"
-                onMouseEnter={() => setActive(i)}
-                onMouseLeave={() => setActive(null)}
-              />
-            </g>
-          ),
-        )}
+            )}
+            {/* x-axis label */}
+            <text
+              x={xFor(i)}
+              y={H - PAD.bottom + 20}
+              textAnchor="middle"
+              className="fill-stone-500 dark:fill-stone-400"
+              fontSize={12}
+            >
+              {shorten(p.name)}
+            </text>
+            {/* hit area — pointer, touch and keyboard */}
+            <circle
+              id={`${titleId}-pt-${k}`}
+              cx={xFor(i)}
+              cy={yFor(p.cumulative as number)}
+              r={18}
+              fill="transparent"
+              tabIndex={0}
+              role="button"
+              aria-label={`${p.name}: ${(p.cumulative as number).toFixed(2)}`}
+              className="cursor-pointer focus:outline-none focus-visible:stroke-brand-500 focus-visible:[stroke-width:2]"
+              onMouseEnter={() => setActive(i)}
+              onMouseLeave={() => setActive(null)}
+              onFocus={() => setActive(i)}
+              onBlur={() => setActive(null)}
+              onClick={() => setActive(i)}
+              onKeyDown={(e) => onKeyDown(e, k)}
+            />
+          </g>
+        ))}
       </svg>
 
       {/* Tooltip */}
@@ -176,6 +213,27 @@ export function GpaTrendChart({ points }: { points: SemesterPoint[] }) {
           </div>
         </div>
       )}
+
+      {/* Text equivalent of the chart. */}
+      <table className="sr-only">
+        <caption>{t.semesters.chartTitle}</caption>
+        <thead>
+          <tr>
+            <th scope="col">{t.semesters.term}</th>
+            <th scope="col">{t.semesters.spa}</th>
+            <th scope="col">{t.semesters.cumulative}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {linePts.map(({ p }) => (
+            <tr key={p.id}>
+              <th scope="row">{p.name}</th>
+              <td>{p.spa === null ? '—' : p.spa.toFixed(2)}</td>
+              <td>{(p.cumulative as number).toFixed(2)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

@@ -100,6 +100,102 @@ describe('projectGpa', () => {
     expect(r.newGpa).toBe(2.3);
     expect(r.newTotalCredits).toBe(30);
   });
+
+  it('uses exact quality points when given, instead of rounded GPA × credits', () => {
+    // A real average of 3.335 rounds to 3.34 for display. Rebuilding the total
+    // from the rounded figure would put ~0.5 quality points of error into every
+    // projection built on it.
+    const exact = projectGpa({
+      currentGpa: 3.34,
+      currentCredits: 100,
+      currentQualityPoints: 333.5,
+      courses: [c('A', 4)],
+    });
+    const rebuilt = projectGpa({
+      currentGpa: 3.34,
+      currentCredits: 100,
+      courses: [c('A', 4)],
+    });
+    expect(exact.newGpa).toBe(3.36); // 349.5 / 104
+    expect(rebuilt.newGpa).toBe(3.37); // 349.5 → 350.0 / 104
+    expect(exact.newGpa).not.toBe(rebuilt.newGpa);
+  });
+});
+
+describe('projectGpa — repeat rules', () => {
+  // Same retake in all three: 3-credit C (2.0) retaken and scored B- (2.7),
+  // against a 3.0 cumulative over 30 credits (90 quality points).
+  const retake = () => [c('B-', 3, { isRetake: true, previousGrade: 'C' })];
+
+  it('highest: the better attempt replaces the worse, credits counted once', () => {
+    const r = projectGpa({
+      currentGpa: 3.0,
+      currentCredits: 30,
+      courses: retake(),
+      repeatRule: 'highest',
+    });
+    // 90 + (2.7 − 2.0)×3 = 92.1 / 30
+    expect(r.newGpa).toBe(3.07);
+    expect(r.newTotalCredits).toBe(30);
+  });
+
+  it('last: the newest attempt counts even when it is worse', () => {
+    const r = projectGpa({
+      currentGpa: 3.0,
+      currentCredits: 30,
+      courses: [c('D', 3, { isRetake: true, previousGrade: 'B' })],
+      repeatRule: 'last',
+    });
+    // 90 + (1.0 − 3.0)×3 = 84 / 30 = 2.8
+    expect(r.newGpa).toBe(2.8);
+    expect(r.newTotalCredits).toBe(30);
+  });
+
+  it('highest: a worse retake changes nothing', () => {
+    const r = projectGpa({
+      currentGpa: 3.0,
+      currentCredits: 30,
+      courses: [c('D', 3, { isRetake: true, previousGrade: 'B' })],
+      repeatRule: 'highest',
+    });
+    expect(r.newGpa).toBe(3.0);
+    expect(r.delta).toBe(0);
+  });
+
+  it('all: both attempts stay in the average and both sets of credits count', () => {
+    const r = projectGpa({
+      currentGpa: 3.0,
+      currentCredits: 30,
+      courses: retake(),
+      repeatRule: 'all',
+    });
+    // 90 + 2.7×3 = 98.1 / 33
+    expect(r.newGpa).toBe(2.97);
+    expect(r.newTotalCredits).toBe(33);
+  });
+
+  it('defaults to the highest-attempt rule when none is given', () => {
+    const withRule = projectGpa({
+      currentGpa: 3.0,
+      currentCredits: 30,
+      courses: retake(),
+      repeatRule: 'highest',
+    });
+    const withoutRule = projectGpa({ currentGpa: 3.0, currentCredits: 30, courses: retake() });
+    expect(withoutRule).toEqual(withRule);
+  });
+
+  it('still reports the term GPA at the new grade under every rule', () => {
+    for (const rule of ['highest', 'last', 'all'] as const) {
+      const r = projectGpa({
+        currentGpa: 3.0,
+        currentCredits: 30,
+        courses: retake(),
+        repeatRule: rule,
+      });
+      expect(r.termGpa).toBe(2.7);
+    }
+  });
 });
 
 describe('requiredTermGpa', () => {

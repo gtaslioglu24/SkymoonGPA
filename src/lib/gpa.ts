@@ -10,6 +10,22 @@ import { getGrade, GPA_GRADES, THRESHOLDS } from './grades';
 /** Which program(s) a course counts toward, for double-major (ÇAP) GPAs. */
 export type Program = 'major' | 'double' | 'both';
 
+/**
+ * How a repeated course is folded into the cumulative GPA.
+ *
+ * This is a *policy* choice, not arithmetic, and it is the single assumption in
+ * this app most likely to diverge from a given student's situation — at Koç the
+ * replacement is not always automatic (some cases go through a petition), so the
+ * rule is exposed to the user rather than hard-coded.
+ *
+ * - `highest` — only the best attempt counts; credits counted once.
+ * - `last`    — the newest attempt replaces the old one; credits counted once.
+ * - `all`     — every attempt stays in the average; credits counted each time.
+ */
+export type RepeatRule = 'highest' | 'last' | 'all';
+
+export const DEFAULT_REPEAT_RULE: RepeatRule = 'highest';
+
 export interface CourseInput {
   id: string;
   name?: string;
@@ -39,11 +55,11 @@ function affectsGpa(c: CourseInput): boolean {
 // ---------------------------------------------------------------------------
 
 export interface GpaResult {
-  /** Weighted average on the 4.00 scale. */
+  /** Weighted average on the 4.00 scale, rounded for display. */
   gpa: number;
   /** Credits that entered the GPA (letter-graded A+…F). */
   gpaCredits: number;
-  /** Sum of quality points (points × credits). */
+  /** Sum of quality points (points × credits) — exact, not rounded. */
   qualityPoints: number;
   /** Credits actually earned toward the degree (excludes F, U, W). */
   earnedCredits: number;
@@ -69,7 +85,7 @@ export function calcGpaFromCourses(courses: CourseInput[]): GpaResult {
   return {
     gpa: gpaCredits > 0 ? round2(qualityPoints / gpaCredits) : 0,
     gpaCredits,
-    qualityPoints: round2(qualityPoints),
+    qualityPoints,
     earnedCredits,
   };
 }
@@ -97,7 +113,7 @@ export function calcDoubleMajor(courses: CourseInput[]): DoubleMajorResult {
 }
 
 // ---------------------------------------------------------------------------
-// 2. Projection ("what-if") with Koç repeat rule
+// 2. Projection ("what-if")
 // ---------------------------------------------------------------------------
 
 export interface ProjectionInput {
@@ -105,8 +121,16 @@ export interface ProjectionInput {
   currentGpa: number;
   /** Credits already reflected in the current GPA (GPA denominator so far). */
   currentCredits: number;
+  /**
+   * Exact quality points behind the current GPA, when known (detailed mode).
+   * Omitted, it is reconstructed as `currentGpa × currentCredits`, which carries
+   * the rounding error of a two-decimal GPA into everything downstream.
+   */
+  currentQualityPoints?: number;
   /** Planned / hypothetical courses for the upcoming term. */
   courses: CourseInput[];
+  /** How repeats are folded in (default: highest attempt counts). */
+  repeatRule?: RepeatRule;
 }
 
 export interface ProjectionResult {
@@ -128,16 +152,19 @@ export interface ProjectionResult {
 /**
  * Project the new cumulative GPA.
  *
- * Repeat rule (Koç): when a course is repeated, only the *highest* letter grade
- * counts toward the GPA and the credits are counted once. A retake therefore
- * removes the previous attempt's contribution and, if the new grade is higher,
- * substitutes it — without adding new credits to the denominator.
+ * A retake is assumed to be a repeat of a course whose credits are *already* in
+ * `currentCredits`; under `highest`/`last` it therefore adjusts quality points
+ * without growing the denominator.
  */
 export function projectGpa(input: ProjectionInput): ProjectionResult {
   const currentGpa = clampGpa(input.currentGpa || 0);
   const currentCredits = Math.max(0, input.currentCredits || 0);
+  const rule = input.repeatRule ?? DEFAULT_REPEAT_RULE;
 
-  let deltaQuality = currentGpa * currentCredits;
+  let quality =
+    input.currentQualityPoints !== undefined && Number.isFinite(input.currentQualityPoints)
+      ? input.currentQualityPoints
+      : currentGpa * currentCredits;
   let totalCredits = currentCredits;
 
   // Semester (SPA) accumulators — every counted course at its new grade.
@@ -154,22 +181,22 @@ export function projectGpa(input: ProjectionInput): ProjectionResult {
     termCredits += c.credits;
 
     const prev = c.isRetake && c.previousGrade ? getGrade(c.previousGrade) : undefined;
+    const replaces = prev && prev.countsInGpa && rule !== 'all';
 
-    if (prev && prev.countsInGpa) {
-      // Repeat of a course already in the GPA: highest grade counts, credits
-      // counted once (already in the denominator from the first attempt).
+    if (replaces) {
+      // Repeat of a course already in the GPA: swap its contribution in place.
+      // Credits stay put — they entered the denominator on the first attempt.
       const oldPoints = prev.points as number;
-      const bestPoints = Math.max(newPoints, oldPoints);
-      deltaQuality += (bestPoints - oldPoints) * c.credits;
-      // totalCredits unchanged — credits were already counted.
+      const countedPoints = rule === 'highest' ? Math.max(newPoints, oldPoints) : newPoints;
+      quality += (countedPoints - oldPoints) * c.credits;
     } else {
-      // Brand-new course: add both quality points and credits.
-      deltaQuality += newPoints * c.credits;
+      // Brand-new course (or `all`, where every attempt stands on its own).
+      quality += newPoints * c.credits;
       totalCredits += c.credits;
     }
   }
 
-  const newGpa = totalCredits > 0 ? clampGpa(deltaQuality / totalCredits) : currentGpa;
+  const newGpa = totalCredits > 0 ? clampGpa(quality / totalCredits) : currentGpa;
 
   return {
     currentGpa: round2(currentGpa),
@@ -191,6 +218,8 @@ export type TargetStatus = 'ok' | 'guaranteed' | 'impossible' | 'no-credits';
 export interface TargetInput {
   currentGpa: number;
   currentCredits: number;
+  /** Exact quality points behind the current GPA, when known. */
+  currentQualityPoints?: number;
   /** Total credits planned for the upcoming term. */
   plannedCredits: number;
   /** Desired cumulative GPA after the term. */
@@ -213,8 +242,13 @@ export function requiredTermGpa(input: TargetInput): TargetResult {
   const plannedCredits = Math.max(0, input.plannedCredits || 0);
   const targetGpa = clampGpa(input.targetGpa || 0);
 
+  const currentQuality =
+    input.currentQualityPoints !== undefined && Number.isFinite(input.currentQualityPoints)
+      ? input.currentQualityPoints
+      : currentGpa * currentCredits;
+
   const maxReachable = round2(
-    (currentGpa * currentCredits + THRESHOLDS.max * plannedCredits) /
+    (currentQuality + THRESHOLDS.max * plannedCredits) /
       Math.max(1, currentCredits + plannedCredits),
   );
 
@@ -228,8 +262,7 @@ export function requiredTermGpa(input: TargetInput): TargetResult {
   }
 
   const required =
-    (targetGpa * (currentCredits + plannedCredits) - currentGpa * currentCredits) /
-    plannedCredits;
+    (targetGpa * (currentCredits + plannedCredits) - currentQuality) / plannedCredits;
 
   if (required <= 0) {
     return {

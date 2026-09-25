@@ -24,6 +24,8 @@ const tr = {
   semesters: {
     term: 'Dönem',
     chartTitle: 'GPA gelişimi',
+    chartDesc:
+      '{n} dönem boyunca kümülatif GPA: ilk dönem {first}, son dönem {last}. Aynı veriler aşağıdaki tabloda da var.',
     overall: 'Genel GPA',
     spa: 'Dönem (SPA)',
     cumulative: 'Kümülatif',
@@ -56,9 +58,17 @@ const tr = {
     retake: 'Tekrar (retake)',
     retakeShort: 'Tekrar',
     previousGrade: 'Önceki not',
-    retakeHint: 'Bu dersi daha önce almıştın — Koç kuralına göre yüksek not sayılır.',
+    retakeHint:
+      'Bu dersi daha önce almıştın. Tekrar kuralını aşağıdan seç — değiştirme her durumda otomatik değildir, Öğrenci İşleri’ne teyit ettir.',
     empty: 'Henüz ders eklemedin.',
     emptyCta: 'Başlamak için “Ders ekle”ye dokun.',
+  },
+  repeat: {
+    title: 'Ders tekrarı kuralı',
+    highest: 'En yüksek not sayılır',
+    last: 'Son alınan not sayılır',
+    all: 'Tüm denemeler ortalamada kalır',
+    hint: 'Koç’ta tekrar edilen dersin notunun değiştirilmesi bazı durumlarda dilekçeye bağlıdır. Emin değilsen Öğrenci İşleri’ne sor; buradaki seçim yalnızca hesabı etkiler.',
   },
   result: {
     current: 'Mevcut GPA',
@@ -74,6 +84,7 @@ const tr = {
     earnedCredits: 'kazanılan kredi',
     gpaCredits: 'GPA kredisi',
     enterToSee: 'Sonucu görmek için ders ekle',
+    enterStanding: 'Önce mevcut GPA’nı ve toplam kredini gir',
     honor: 'Vehbi Koç Onur Öğrencisi eşiğindesin (3.50+).',
     safe: 'Mezuniyet eşiğinin (2.00) üzerindesin.',
     warning: 'Mezuniyet eşiğinin (2.00) altındasın — dikkat.',
@@ -102,22 +113,70 @@ const tr = {
     doubleGpa: 'ÇAP GPA',
     note: 'Her dersi hangi programa saydığını seç; her program için ayrı ortalama hesaplanır. “İkisi” dersler iki ortalamaya da girer.',
   },
+  transcript: {
+    open: 'Transkript yapıştır',
+    title: 'Transkriptten içe aktar',
+    hint: 'KUSIS’teki tabloyu ya da PDF transkriptini seçip kopyala, buraya yapıştır.',
+    placeholder: `2023-2024 Güz\nMATH 106  Matematik II  4  6  A-\nCOMP 200  Bilgisayar Bilimlerine Giriş  3  6  B+`,
+    privacy:
+      'Yapıştırdığın metin cihazından çıkmaz, hiçbir yere gönderilmez ve kaydedilmez — yalnızca tarayıcında okunur.',
+    preview: 'Bulunan dersler',
+    coursesFound: '{n} ders, {s} dönem bulundu',
+    noneFound:
+      'Bu metinde ders satırı bulunamadı. Ders kodu, kredi ve harf notunun aynı satırda olduğu bir bölüm yapıştırmayı dene.',
+    creditColumnTitle: 'Kredi sütunu',
+    creditSmaller: 'Küçük olan (Koç kredisi)',
+    creditLarger: 'Büyük olan (ECTS)',
+    creditHint:
+      'Bazı satırlarda iki sayı var — genelde Koç kredisi ve ECTS. Koç ortalaması Koç kredisiyle hesaplanır, bu yüzden varsayılan küçük olandır. Önizlemedeki sayılar transkriptindeki “Kredi” sütunuyla uyuşmuyorsa buradan değiştir.',
+    skippedTitle: 'Okunamayan {n} satır',
+    skippedHint: 'Bu satırlar içe aktarılmayacak. Aralarında ders varsa elle ekleyebilirsin.',
+    duplicateTitle: 'Tekrar eden ders',
+    duplicateHint:
+      'aynı ders birden fazla kez görünüyor. Bu sekme tüm denemeleri ortalamaya katar; resmî CGPA’nda tekrar kuralı farklı işleyebilir.',
+    summaryFound:
+      'Transkriptte kümülatif GPA {gpa} ve toplam {credits} kredi bulundu. Bunları “Mevcut Durumun” alanına kendin girebilirsin.',
+    unnamedSemester: 'Dönem adı yok',
+    modeLabel: 'İçe aktarma biçimi',
+    modeAppend: 'Mevcutlara ekle',
+    modeReplace: 'Mevcutları değiştir',
+    import: '{n} dersi içe aktar',
+    clear: 'Temizle',
+    cancel: 'Kapat',
+    undo: 'Geri al',
+  },
   footer: {
     rights: 'Tüm hakları saklıdır.',
+  },
+  privacy: {
+    notice:
+      'Girdiğin hiçbir bilgi sunucuya gönderilmez; veriler yalnızca bu tarayıcıda saklanır. Ortak bir bilgisayardaysan işin bitince verilerini sil.',
+    clearData: 'Verilerimi sil',
+    confirmClear: 'Evet, hepsini sil',
+    cancel: 'Vazgeç',
+    feedback: 'Hata bildir / geri bildirim',
   },
   info: {
     scaleTitle: 'Koç harf notu skalası',
     nonGpaTitle: 'GPA’ya girmeyen notlar',
     nonGpaBody:
       'S, U, P, W ve benzeri idari notlar ortalamaya katılmaz. F notu ise 0.00 olarak ortalamaya girer.',
+    repeatTitle: 'Ders tekrarı',
+    repeatBody:
+      'Simülasyon sekmesinde tekrar kuralını seçebilirsin. Varsayılan “en yüksek not sayılır”; ancak notun değiştirilmesi bazı durumlarda dilekçe gerektirir, bu yüzden resmî durumu Öğrenci İşleri’nden teyit et.',
     creditNote: 'Kredi = Koç kredisi (ECTS değil). Transkriptteki “Credit/Kredi” sütununu kullan.',
+    verifiedOn: 'Buradaki kurallar {date} tarihinde resmî kaynaklarla karşılaştırıldı.',
     disclaimer:
       'Gayriresmî bir araçtır. Sonuçlar tahminidir; resmî ortalaman için transkriptini ve Öğrenci İşleri’ni esas al.',
   },
   common: {
     points: 'katsayı',
     theme: 'Tema',
+    themeToDark: 'Koyu temaya geç',
+    themeToLight: 'Açık temaya geç',
     language: 'Dil',
+    skipToContent: 'İçeriğe geç',
+    tabsLabel: 'Hesaplama modu',
   },
 };
 
@@ -145,6 +204,8 @@ const en: Dict = {
   semesters: {
     term: 'Semester',
     chartTitle: 'GPA over time',
+    chartDesc:
+      'Cumulative GPA across {n} semesters: {first} at the start, {last} most recently. The same figures appear in the table below.',
     overall: 'Overall GPA',
     spa: 'Term (SPA)',
     cumulative: 'Cumulative',
@@ -177,9 +238,17 @@ const en: Dict = {
     retake: 'Retake',
     retakeShort: 'Retake',
     previousGrade: 'Previous grade',
-    retakeHint: 'You took this before — per Koç rules the higher grade counts.',
+    retakeHint:
+      'You took this before. Pick the repeat rule below — replacement is not automatic in every case, so confirm with the Registrar.',
     empty: 'No courses yet.',
     emptyCta: 'Tap “Add course” to get started.',
+  },
+  repeat: {
+    title: 'Repeat rule',
+    highest: 'Highest attempt counts',
+    last: 'Most recent attempt counts',
+    all: 'Every attempt stays in the average',
+    hint: 'At Koç, replacing the grade of a repeated course can require a petition. If you are unsure, ask the Registrar — this setting only changes the arithmetic here.',
   },
   result: {
     current: 'Current GPA',
@@ -195,6 +264,7 @@ const en: Dict = {
     earnedCredits: 'earned credits',
     gpaCredits: 'GPA credits',
     enterToSee: 'Add a course to see the result',
+    enterStanding: 'First enter your current GPA and total credits',
     honor: 'You’re at the Vehbi Koç Scholar threshold (3.50+).',
     safe: 'You’re above the graduation threshold (2.00).',
     warning: 'Below the graduation threshold (2.00) — watch out.',
@@ -223,22 +293,70 @@ const en: Dict = {
     doubleGpa: 'Double-major GPA',
     note: 'Tag each course to a program; a separate GPA is computed for each. “Both” courses count toward both averages.',
   },
+  transcript: {
+    open: 'Paste transcript',
+    title: 'Import from transcript',
+    hint: 'Select the table in KUSIS or your PDF transcript, copy it, and paste it here.',
+    placeholder: `Fall 2023-2024\nMATH 106  Calculus II  4  6  A-\nCOMP 200  Introduction to Computer Science  3  6  B+`,
+    privacy:
+      'The text you paste never leaves your device, is never sent anywhere, and is not saved — it is only read in your browser.',
+    preview: 'Courses found',
+    coursesFound: 'Found {n} courses across {s} semesters',
+    noneFound:
+      'No course rows found in this text. Try pasting a section where the course code, credits and letter grade sit on the same line.',
+    creditColumnTitle: 'Credit column',
+    creditSmaller: 'The smaller one (KU credit)',
+    creditLarger: 'The larger one (ECTS)',
+    creditHint:
+      'Some rows have two numbers — usually KU credit and ECTS. Koç GPA is weighted by KU credit, so the smaller one is used by default. If the preview does not match the “Credit” column on your transcript, switch it here.',
+    skippedTitle: '{n} lines could not be read',
+    skippedHint: 'These will not be imported. If any of them are courses, add them by hand.',
+    duplicateTitle: 'Repeated course',
+    duplicateHint:
+      'appears more than once. This tab counts every attempt; your official CGPA may apply a repeat rule instead.',
+    summaryFound:
+      'The transcript states a cumulative GPA of {gpa} over {credits} credits. You can enter those under “Your Current Standing”.',
+    unnamedSemester: 'Unnamed semester',
+    modeLabel: 'Import mode',
+    modeAppend: 'Add to existing',
+    modeReplace: 'Replace existing',
+    import: 'Import {n} courses',
+    clear: 'Clear',
+    cancel: 'Close',
+    undo: 'Undo',
+  },
   footer: {
     rights: 'All rights reserved.',
+  },
+  privacy: {
+    notice:
+      'Nothing you type is sent to a server; it stays in this browser only. On a shared computer, clear your data when you’re done.',
+    clearData: 'Delete my data',
+    confirmClear: 'Yes, delete everything',
+    cancel: 'Cancel',
+    feedback: 'Report a problem / feedback',
   },
   info: {
     scaleTitle: 'Koç letter-grade scale',
     nonGpaTitle: 'Grades excluded from GPA',
     nonGpaBody:
       'S, U, P, W and similar administrative grades don’t enter the average. An F counts as 0.00 in the GPA.',
+    repeatTitle: 'Repeated courses',
+    repeatBody:
+      'The Simulation tab lets you pick the repeat rule. The default is "highest attempt counts", but replacing a grade can require a petition — confirm your own case with the Registrar.',
     creditNote: 'Credit = KU credit (not ECTS). Use the “Credit” column on your transcript.',
+    verifiedOn: 'These rules were last checked against official sources on {date}.',
     disclaimer:
       'This is an unofficial tool. Results are estimates; rely on your transcript and the Registrar for your official GPA.',
   },
   common: {
     points: 'points',
     theme: 'Theme',
+    themeToDark: 'Switch to dark theme',
+    themeToLight: 'Switch to light theme',
     language: 'Language',
+    skipToContent: 'Skip to content',
+    tabsLabel: 'Calculation mode',
   },
 };
 
@@ -252,12 +370,16 @@ interface I18nContextValue {
 
 const I18nContext = createContext<I18nContextValue | null>(null);
 
-const STORAGE_KEY = 'koc-gpa:lang';
+const STORAGE_KEY = 'skymoon-gpa:lang';
 
 function detectInitialLang(): Lang {
   if (typeof window === 'undefined') return 'tr';
-  const saved = window.localStorage.getItem(STORAGE_KEY);
-  if (saved === 'tr' || saved === 'en') return saved;
+  try {
+    const saved = window.localStorage.getItem(STORAGE_KEY);
+    if (saved === 'tr' || saved === 'en') return saved;
+  } catch {
+    /* storage disabled */
+  }
   return navigator.language?.toLowerCase().startsWith('en') ? 'en' : 'tr';
 }
 
@@ -266,8 +388,11 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   const setLang = (l: Lang) => {
     setLangState(l);
-    window.localStorage.setItem(STORAGE_KEY, l);
-    document.documentElement.lang = l;
+    try {
+      window.localStorage.setItem(STORAGE_KEY, l);
+    } catch {
+      /* storage disabled */
+    }
   };
 
   useEffect(() => {
