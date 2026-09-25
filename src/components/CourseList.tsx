@@ -89,6 +89,10 @@ export function CourseList({
                   onChange={(e) => update(course.id, { name: e.target.value })}
                   placeholder={t.courses.namePlaceholder}
                   aria-label={`${t.courses.name} ${i + 1}`}
+                  // An imported row carries both the code and the full title,
+                  // which is wider than the field; the tooltip means checking a
+                  // long one doesn't require clicking into it and scrolling.
+                  title={course.name || undefined}
                 />
               </div>
 

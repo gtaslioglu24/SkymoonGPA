@@ -88,21 +88,90 @@ const num = (s: string) => Number(s.replace(',', '.'));
 // Line classification
 // ---------------------------------------------------------------------------
 
+/**
+ * Fold the many ways a transcript can spell the same character into one.
+ *
+ * A PDF copy rarely hands back ASCII. The minus in "A-" arrives as an en dash,
+ * a real minus sign or a non-breaking hyphen depending on the font, and the
+ * column gaps arrive as non-breaking spaces. Every one of those used to make
+ * the row unreadable, which showed up as courses quietly missing from an
+ * otherwise successful import.
+ */
+function normalize(text: string): string {
+  return text
+    .replace(/[\u2010-\u2015\u2212\uFE58\uFE63\uFF0D]/g, '-')
+    .replace(/[\u00a0\u2007\u202f\u2000-\u2006\u2008-\u200a]/g, ' ');
+}
+
 /** Split on tabs / multiple spaces first, falling back to single spaces. */
 function tokenize(line: string): string[] {
-  return line
+  const raw = line
     .split(/[\t|]+|\s{2,}|\s/)
     .map((t) => t.trim().replace(/^[([{]+|[)\]},;:]+$/g, ''))
     .filter(Boolean);
+
+  // "A-" printed with a space before the sign arrives as two tokens, and "A"
+  // on its own is a different grade worth three tenths more. Merge the pair —
+  // but only when the result is a grade that actually exists, so a stray sign
+  // elsewhere on the row is left alone.
+  const out: string[] = [];
+  for (const token of raw) {
+    const prev = out[out.length - 1];
+    if ((token === '+' || token === '-') && prev && getGrade((prev + token).toUpperCase())) {
+      out[out.length - 1] = prev + token;
+    } else {
+      out.push(token);
+    }
+  }
+  return out;
 }
 
-/** Index of the rightmost token that is a grade we understand. */
+/** A grade token, ignoring case and any trailing footnote marker ("A-*"). */
+function gradeOf(token: string): ReturnType<typeof getGrade> {
+  return getGrade(token.toUpperCase().replace(/[*†‡#]+$/, ''));
+}
+
+const isNumeric = (token: string) => /^\d+([.,]\d+)?$/.test(token);
+
+/**
+ * Index of the token holding this row's grade, or -1.
+ *
+ * Two traps, both of which used to put a wrong grade on a real course rather
+ * than fail loudly:
+ *
+ *  - A trailing status column. "… B+  S" ends in a letter that is a valid
+ *    non-GPA grade, and taking the rightmost match turned a 3.30 course into an
+ *    ungraded one. So a GPA-bearing letter (A+…F) always wins over a bare
+ *    administrative one; S/U/P/W are only believed when nothing else is there.
+ *
+ *  - A title ending in a single letter — "Programming in C", "Writing A". A
+ *    bare letter is only accepted as a grade when it sits where a grade sits:
+ *    at the end of the row, or straight after the numeric columns. Otherwise
+ *    the row is left unparsed and reported, because inventing a C for a course
+ *    that has no grade yet is far worse than admitting the line was unreadable.
+ *
+ * A signed grade ("A-", "B+") is unambiguous — no course title contains one —
+ * so it is accepted wherever it appears.
+ */
 function findGradeIndex(tokens: string[]): number {
+  let gpaGrade = -1;
+  let adminGrade = -1;
+
   for (let i = tokens.length - 1; i >= 0; i--) {
-    const t = tokens[i].toUpperCase();
-    if (getGrade(t)) return i;
+    const info = gradeOf(tokens[i]);
+    if (!info) continue;
+
+    const bare = tokens[i].replace(/[*†‡#]+$/, '').length === 1;
+    if (bare && i !== tokens.length - 1 && !isNumeric(tokens[i - 1] ?? '')) continue;
+
+    if (info.countsInGpa || info.points !== null) {
+      if (gpaGrade === -1) gpaGrade = i;
+    } else if (adminGrade === -1) {
+      adminGrade = i;
+    }
   }
-  return -1;
+
+  return gpaGrade !== -1 ? gpaGrade : adminGrade;
 }
 
 function isSemesterHeader(line: string, tokens: string[]): boolean {
@@ -131,7 +200,7 @@ function parseCourseLine(line: string, creditColumn: CreditColumn): ParsedCourse
 
   const gradeIndex = findGradeIndex(tokens);
   if (gradeIndex === -1) return null;
-  const grade = tokens[gradeIndex].toUpperCase();
+  const grade = tokens[gradeIndex].toUpperCase().replace(/[*†‡#]+$/, '');
 
   // Course code, if the row starts with one ("MATH 106" or "MATH106").
   let code: string | undefined;
@@ -217,7 +286,7 @@ export function parseTranscript(
     semesters[semesters.length - 1].courses.push(course);
   };
 
-  for (const rawLine of text.split(/\r?\n/)) {
+  for (const rawLine of normalize(text).split(/\r?\n/)) {
     const line = rawLine.trim();
     if (!line) continue;
 

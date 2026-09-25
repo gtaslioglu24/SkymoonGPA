@@ -185,6 +185,55 @@ MATH 106  Calculus II  4  6  B
     expect(r.skipped).toHaveLength(1);
   });
 
+  it('reads a grade whose minus sign came out of a PDF as a dash', () => {
+    // En dash, true minus and non-breaking hyphen all reach us as "A-" here;
+    // before this, each one made the whole row unreadable and the course simply
+    // went missing from an import that otherwise looked successful.
+    for (const dash of ['\u2013', '\u2212', '\u2011']) {
+      const r = parseTranscript(`MATH 106\tCalculus II\t4.00\t6.00\tA${dash}`);
+      expect(r.semesters[0]?.courses[0]?.grade).toBe('A-');
+    }
+  });
+
+  it('reads a grade printed with a space before its sign', () => {
+    // "A" is a different grade from "A-", three tenths better, so guessing here
+    // silently inflates the average.
+    const r = parseTranscript(`MATH 106\tCalculus II\t4.00\t6.00\tA -`);
+    expect(r.semesters[0].courses[0].grade).toBe('A-');
+  });
+
+  it('ignores a footnote marker attached to the grade', () => {
+    const r = parseTranscript(`MATH 106\tCalculus II\t4.00\t6.00\tA-*`);
+    expect(r.semesters[0].courses[0].grade).toBe('A-');
+  });
+
+  it('is not fooled by a trailing status column', () => {
+    // "S" and "P" are real non-GPA grades, so a status column ending the row
+    // used to win the rightmost-match and drop the course out of the average.
+    for (const status of ['S', 'P', 'U']) {
+      const r = parseTranscript(`MATH 106\tCalculus II\t4.00\t6.00\tB+\t${status}`);
+      expect(r.semesters[0].courses[0].grade).toBe('B+');
+    }
+  });
+
+  it('still reads a genuine non-GPA grade when that is all there is', () => {
+    const r = parseTranscript(`ENGL 100\tEnglish\t3.00\t6.00\tS`);
+    expect(r.semesters[0].courses[0].grade).toBe('S');
+  });
+
+  it('does not mistake the last word of a title for a grade', () => {
+    const r = parseTranscript(`COMP 132\tProgramming in C\t3.00\t6.00\tB+`);
+    expect(r.semesters[0].courses[0]).toMatchObject({ name: 'Programming in C', grade: 'B+' });
+  });
+
+  it('reports a grade-less row instead of inventing a grade for it', () => {
+    // A course still in progress. Reading the "C" of "Programming in C" as the
+    // grade would put a fabricated 2.00 into someone's average.
+    const r = parseTranscript(`COMP 132\tProgramming in C\t3.00\t6.00`);
+    expect(r.totalCourses).toBe(0);
+    expect(r.skipped).toHaveLength(1);
+  });
+
   it('rejects an implausible cumulative GPA', () => {
     const r = parseTranscript(`Cumulative GPA: 87.5`);
     expect(r.summary.cumulativeGpa).toBeUndefined();
