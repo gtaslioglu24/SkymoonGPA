@@ -67,38 +67,60 @@ export const GPA_GRADE_LETTERS = GPA_GRADES.map((g) => g.letter);
 /**
  * GPA thresholds that matter at Koç.
  *
- * The two honour rolls are awarded on the *semester* average, not the
- * cumulative one, and each carries its own certificate — so they are separate
- * numbers rather than one "honour" line. `deansHonor` is the lower of the two:
- * anything at or above `vehbiKoc` clears it as well, so callers must test the
- * higher threshold first.
+ * The honour lists are decided at the end of each semester on the *semester*
+ * average (SPA), not on the cumulative one — and the two lists do not ask the
+ * same question, so they cannot share a single comparison:
+ *
+ *   Vehbi Koç Onur Listesi   SPA ≥ 3.75
+ *   Dekan Şeref Listesi      SPA ≥ 3.25 *and* cumulative ≥ 3.25
+ *
+ * Source: the "Akademik Durum" note printed on the YÖK transcript, in force
+ * from the Fall 2021 semester. (The English paragraph beside it on that page
+ * still quotes the pre-2021 figures of 3.50 and 3.00; the Turkish text is the
+ * current one.)
  */
 export const THRESHOLDS = {
   /** Minimum cumulative GPA required to graduate. */
   graduation: 2.0,
-  /** Dean's Honour List — Dekan Onur Belgesi. */
+  /** Dean's Honour List — semester *and* cumulative must both reach this. */
   deansHonor: 3.25,
-  /** Vehbi Koç Honour List — Vehbi Koç Onur Belgesi, the higher of the two. */
+  /** Vehbi Koç Honour List — semester average only, the higher of the two. */
   vehbiKoc: 3.75,
   /** Max attainable GPA. */
   max: 4.0,
 } as const;
 
-/** Which threshold band a GPA falls in. Doubles as the i18n key for the note. */
+/** Which threshold band a result falls in. Doubles as the i18n key. */
 export type GpaBand = 'vehbiKoc' | 'deansHonor' | 'safe' | 'warning';
 
 /**
- * Classify a GPA against the thresholds above.
+ * Classify a result against the thresholds above.
  *
  * Lives here, next to the numbers it compares against, rather than in the
- * component that renders the result: it is a rule of the university, it is what
- * the UI claims about a student's record, and a rule the app states out loud is
- * a rule worth a test. Ordered highest first — 3.75 clears 3.25 too, and the
- * note should name the better certificate.
+ * component that renders it: it is a rule of the university, it is what the UI
+ * claims about someone's record, and a rule the app states out loud is a rule
+ * worth a test.
+ *
+ * `termGpa` is the semester average being judged. Without one there is no
+ * semester to award anything for — a "from scratch" total of every course ever
+ * taken is not a semester — so only the graduation line can be reported. Saying
+ * nothing there is the point: an honour claimed on the wrong average is worse
+ * than no claim at all.
  */
-export function gpaBand(gpa: number): GpaBand {
-  if (gpa >= THRESHOLDS.vehbiKoc) return 'vehbiKoc';
-  if (gpa >= THRESHOLDS.deansHonor) return 'deansHonor';
-  if (gpa >= THRESHOLDS.graduation) return 'safe';
-  return 'warning';
+export function gpaBand({
+  cumulativeGpa,
+  termGpa,
+}: {
+  cumulativeGpa: number;
+  termGpa?: number | null;
+}): GpaBand {
+  if (termGpa != null) {
+    // Highest first: a 3.80 semester clears the Dean's bar too, and the note
+    // should name the better list.
+    if (termGpa >= THRESHOLDS.vehbiKoc) return 'vehbiKoc';
+    if (termGpa >= THRESHOLDS.deansHonor && cumulativeGpa >= THRESHOLDS.deansHonor) {
+      return 'deansHonor';
+    }
+  }
+  return cumulativeGpa >= THRESHOLDS.graduation ? 'safe' : 'warning';
 }

@@ -115,7 +115,7 @@ export function ProjectionTab() {
                 <StatPill label={t.result.totalCredits} value={result.newTotalCredits} />
               </div>
 
-              <ThresholdNote gpa={result.newGpa} />
+              <ThresholdNote gpa={result.newGpa} termGpa={result.termGpa} />
             </>
           ) : (
             <EmptyFigure

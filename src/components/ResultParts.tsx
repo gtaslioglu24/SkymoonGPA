@@ -31,11 +31,18 @@ export function DeltaChip({ delta }: { delta: number }) {
   );
 }
 
-export function ThresholdNote({ gpa }: { gpa: number }) {
+/**
+ * The one line that says what a result means.
+ *
+ * `termGpa` is the semester average the honour lists are actually decided on;
+ * leave it out where there is no semester (the "from scratch" total) and the
+ * note falls back to the graduation line alone.
+ */
+export function ThresholdNote({ gpa, termGpa }: { gpa: number; termGpa?: number | null }) {
   const { t } = useI18n();
   if (gpa <= 0) return null;
 
-  const kind = gpaBand(gpa);
+  const kind = gpaBand({ cumulativeGpa: gpa, termGpa });
 
   const dot = {
     vehbiKoc: 'bg-emerald-500',

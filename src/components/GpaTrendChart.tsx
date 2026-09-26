@@ -8,9 +8,12 @@ const H = 260;
 const PAD = { top: 24, right: 52, bottom: 34, left: 12 };
 
 /**
- * Single-series line chart of cumulative GPA across semesters. Threshold guides
- * (2.00 graduation, 3.25 Dean's Honour, 3.75 Vehbi Koç) are recessive
- * references; the active semester is
+ * Single-series line chart of cumulative GPA across semesters. The guides are
+ * the two lines a *cumulative* figure can be read against — 2.00 to graduate and
+ * 3.25, which the Dean's list requires of the cumulative average as well as the
+ * semester one. The 3.75 Vehbi Koç line is deliberately absent: it is a semester
+ * threshold, and drawing it across a cumulative series would invite reading it
+ * as a target this chart can reach. They stay recessive; the active semester is
  * revealed on hover, tap or keyboard focus with a crosshair + tooltip. No legend
  * — the title names the one series (per dataviz guidance).
  *
@@ -46,7 +49,7 @@ export function GpaTrendChart({ points }: { points: SemesterPoint[] }) {
   const xFor = (i: number) => PAD.left + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
   const yFor = (v: number) => PAD.top + (1 - (v - yMin) / (yMax - yMin)) * plotH;
 
-  const guides = [THRESHOLDS.graduation, THRESHOLDS.deansHonor, THRESHOLDS.vehbiKoc].filter(
+  const guides = [THRESHOLDS.graduation, THRESHOLDS.deansHonor].filter(
     (g) => g >= yMin && g <= yMax,
   );
 

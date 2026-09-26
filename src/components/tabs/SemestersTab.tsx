@@ -114,7 +114,14 @@ export function SemestersTab() {
 
         <GpaTrendChart points={series.points} />
 
-        {series.overallGpa > 0 && <ThresholdNote gpa={series.overallGpa} />}
+        {series.overallGpa > 0 && (
+          // The honour lists are decided per semester, so the note is about the
+          // most recent graded one — not the whole history above it.
+          <ThresholdNote
+            gpa={series.overallGpa}
+            termGpa={[...series.points].reverse().find((p) => p.spa !== null)?.spa}
+          />
+        )}
       </Card>
 
       {/* Semester editors */}
