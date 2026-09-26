@@ -90,9 +90,11 @@ render'da hata fırlatır, "yenile" aynı kaydı tekrar okur ve uygulama kalıc�
 - **Ders tekrarı:** Varsayılan "en yüksek harf notu sayılır, krediler bir kez sayılır".
   Ancak notun değiştirilmesi her durumda otomatik değildir (bazı durumlarda dilekçe gerekir),
   bu yüzden kural arayüzden seçilebilir ve uygulama kullanıcıyı Öğrenci İşleri'ne yönlendirir.
-- Eşikler: Mezuniyet ≥ 2.00 · Vehbi Koç Onur Öğrencisi ≥ 3.50.
+- **Eşikler:** Mezuniyet ≥ 2.00 (kümülatif).
+- **Onur listeleri** dönem ortalamasına (SPA) göre belirlenir, kümülatife göre değil:
+  Vehbi Koç Onur Listesi SPA ≥ 3.75 · Dekan Şeref Listesi SPA ≥ 3.25 **ve** kümülatif ≥ 3.25.
 
-Kurallar en son **10 Ağustos 2026** tarihinde resmî kaynaklarla karşılaştırıldı
+Kurallar en son **26 Eylül 2026** tarihinde resmî kaynaklarla karşılaştırıldı
 (`RULES_VERIFIED_ON`, `src/lib/config.ts`). Kaynak listesi aynı dosyada ve uygulama içindeki
 bilgi panelinde görünür.
 
