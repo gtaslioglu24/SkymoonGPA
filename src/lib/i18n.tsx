@@ -63,12 +63,17 @@ const tr = {
     empty: 'Henüz ders eklemedin.',
     emptyCta: 'Başlamak için “Ders ekle”ye dokun.',
   },
+  meta: {
+    title: 'Skymoon GPA — Koç Üniversitesi not ortalaması hesaplama',
+    description:
+      'Koç Üniversitesi GPA hesaplama, simülasyon ve not projeksiyonu. Bu dönem alacağın notlara göre genel not ortalamanın (CGPA) nasıl değişeceğini anında gör.',
+  },
   repeat: {
     title: 'Ders tekrarı kuralı',
     highest: 'En yüksek not sayılır',
     last: 'Son alınan not sayılır',
     all: 'Tüm denemeler ortalamada kalır',
-    hint: 'Koç’ta tekrar edilen dersin notunun değiştirilmesi bazı durumlarda dilekçeye bağlıdır. Emin değilsen Öğrenci İşleri’ne sor; buradaki seçim yalnızca hesabı etkiler.',
+    hint: 'Koç’un transkriptte yazılı kuralı: tekrar edilen bir derste yalnızca son alınan not ortalamaya girer — varsayılan bu. Diğer seçenekler “ya şöyle olsaydı” denemesi içindir, resmî hesabı değiştirmez.',
   },
   result: {
     current: 'Mevcut GPA',
@@ -173,7 +178,7 @@ const tr = {
       'S, U, P, W ve benzeri idari notlar ortalamaya katılmaz. F notu ise 0.00 olarak ortalamaya girer.',
     repeatTitle: 'Ders tekrarı',
     repeatBody:
-      'Simülasyon sekmesinde tekrar kuralını seçebilirsin. Varsayılan “en yüksek not sayılır”; ancak notun değiştirilmesi bazı durumlarda dilekçe gerektirir, bu yüzden resmî durumu Öğrenci İşleri’nden teyit et.',
+      'Transkriptte yazılı kural: tekrar edilen bir derste yalnızca son alınan not ortalamaya girer, ilk not(lar) hesaba katılmaz. Varsayılan bu. Simülasyon sekmesinden “ya en yüksek not sayılsaydı” gibi denemeler de yapabilirsin.',
     creditNote: 'Kredi = Koç kredisi (ECTS değil). Transkriptteki “Credit/Kredi” sütununu kullan.',
     verifiedOn: 'Buradaki kurallar {date} tarihinde resmî kaynaklarla karşılaştırıldı.',
     disclaimer:
@@ -253,12 +258,17 @@ const en: Dict = {
     empty: 'No courses yet.',
     emptyCta: 'Tap “Add course” to get started.',
   },
+  meta: {
+    title: 'Skymoon GPA — Koç University grade point average calculator',
+    description:
+      'GPA calculation, simulation and projection for Koç University. See instantly how this term’s grades will move your cumulative average (CGPA).',
+  },
   repeat: {
     title: 'Repeat rule',
     highest: 'Highest attempt counts',
     last: 'Most recent attempt counts',
     all: 'Every attempt stays in the average',
-    hint: 'At Koç, replacing the grade of a repeated course can require a petition. If you are unsure, ask the Registrar — this setting only changes the arithmetic here.',
+    hint: 'Koç’s own rule, printed on the transcript: only the most recent attempt at a repeated course enters the average — that is the default here. The other options are for “what if” runs; they do not change the official figure.',
   },
   result: {
     current: 'Current GPA',
@@ -363,7 +373,7 @@ const en: Dict = {
       'S, U, P, W and similar administrative grades don’t enter the average. An F counts as 0.00 in the GPA.',
     repeatTitle: 'Repeated courses',
     repeatBody:
-      'The Simulation tab lets you pick the repeat rule. The default is "highest attempt counts", but replacing a grade can require a petition — confirm your own case with the Registrar.',
+      'The rule printed on the transcript: for a repeated course only the most recent grade enters the average; earlier attempts are left out. That is the default here. The Simulation tab can also run “what if the best attempt counted” for comparison.',
     creditNote: 'Credit = KU credit (not ECTS). Use the “Credit” column on your transcript.',
     verifiedOn: 'These rules were last checked against official sources on {date}.',
     disclaimer:
@@ -417,6 +427,14 @@ export function I18nProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = lang;
+
+    // The document starts out Turkish, matching the canonical page and the
+    // og:locale. Switching language has to carry the title and description with
+    // it, or an English reader gets a Turkish browser tab and a screen reader
+    // announces a Turkish title for a page it has just been told is English.
+    const { title, description } = dictionaries[lang].meta;
+    document.title = title;
+    document.querySelector('meta[name="description"]')?.setAttribute('content', description);
   }, [lang]);
 
   return (

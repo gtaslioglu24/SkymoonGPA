@@ -27,8 +27,13 @@ export const FEEDBACK_URL = import.meta.env.VITE_FEEDBACK_URL?.trim() || '';
  * When the grading rules encoded in `grades.ts` were last checked against the
  * Registrar's published documents. Shown in the UI: a rules-based calculator
  * that can't say when it was last verified is asking for blind trust.
+ *
+ * Last pass checked the letter scale, the honour-list thresholds and the repeat
+ * rule line by line against an official YÖK "Not Döküm Belgesi" issued in
+ * September 2026. The scale matched; the honour thresholds and the repeat rule
+ * did not, and were corrected to the document.
  */
-export const RULES_VERIFIED_ON = '2026-08-10';
+export const RULES_VERIFIED_ON = '2026-09-26';
 
 /** Official sources for the numbers this app encodes. */
 export const SOURCES: { label: string; url: string }[] = [

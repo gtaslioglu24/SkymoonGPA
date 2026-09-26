@@ -79,11 +79,26 @@ describe('projectGpa', () => {
     expect(r.newTotalCredits).toBe(30); // credits NOT double counted
   });
 
-  it('retake with a lower grade keeps the higher old grade (no change)', () => {
+  it('lets a worse retake pull the average down, as Koç does', () => {
+    // The default rule is the university's: only the most recent attempt
+    // counts. 90 qp over 30 credits, B(3.0) -> C(2.0) on 3 of them:
+    // 90 + (2 - 3) * 3 = 87 / 30 = 2.90. Defaulting to "highest" instead used
+    // to report an unchanged 3.00 to a student whose real GPA had fallen.
     const r = projectGpa({
       currentGpa: 3.0,
       currentCredits: 30,
       courses: [c('C', 3, { isRetake: true, previousGrade: 'B' })],
+    });
+    expect(r.newGpa).toBe(2.9);
+    expect(r.delta).toBe(-0.1);
+  });
+
+  it('keeps the better attempt when asked for the "highest" rule', () => {
+    const r = projectGpa({
+      currentGpa: 3.0,
+      currentCredits: 30,
+      courses: [c('C', 3, { isRetake: true, previousGrade: 'B' })],
+      repeatRule: 'highest',
     });
     expect(r.newGpa).toBe(3.0);
     expect(r.delta).toBe(0);

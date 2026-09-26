@@ -161,11 +161,16 @@ export function GpaTrendChart({ points }: { points: SemesterPoint[] }) {
                 {(p.cumulative as number).toFixed(2)}
               </text>
             )}
-            {/* x-axis label */}
+            {/* x-axis label.
+
+                The end labels are anchored to their edge rather than centred on
+                their point: the first point sits at the very left of the plot,
+                so a centred label runs off the side of the SVG and the term name
+                arrives with its first characters sliced off. */}
             <text
               x={xFor(i)}
               y={H - PAD.bottom + 20}
-              textAnchor="middle"
+              textAnchor={i === 0 ? 'start' : i === n - 1 ? 'end' : 'middle'}
               className="fill-stone-500 dark:fill-stone-400"
               fontSize={12}
             >
@@ -244,6 +249,16 @@ export function GpaTrendChart({ points }: { points: SemesterPoint[] }) {
   );
 }
 
+/**
+ * Fit a term name into an axis label without losing what distinguishes it.
+ *
+ * Plain truncation cut "2024-2025 Güz" and "2024-2025 Bahar" down to the same
+ * "2024-2025…", so two different terms sat under the chart looking identical —
+ * the season, which is the only thing telling them apart, was the part thrown
+ * away. Collapsing the academic year to "24-25" buys back exactly the room the
+ * season needs.
+ */
 function shorten(name: string): string {
-  return name.length > 10 ? name.slice(0, 9) + '…' : name;
+  const compact = name.replace(/\b\d{2}(\d{2})\s*-\s*\d{2}(\d{2})\b/, '$1-$2');
+  return compact.length > 12 ? compact.slice(0, 11) + '…' : compact;
 }

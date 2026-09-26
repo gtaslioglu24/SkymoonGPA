@@ -24,7 +24,15 @@ export type Program = 'major' | 'double' | 'both';
  */
 export type RepeatRule = 'highest' | 'last' | 'all';
 
-export const DEFAULT_REPEAT_RULE: RepeatRule = 'highest';
+/**
+ * Koç's own rule, printed on the transcript: "Öğrencilerin tekrarladıkları
+ * derslerde sadece son aldıkları not(lar) Genel Not Ortalaması hesaplamalarına
+ * dahil edilir" — only the most recent attempt counts, in force since Fall 2003.
+ *
+ * This used to default to `highest`, which quietly flatters anyone who retook a
+ * course and did worse: their real CGPA falls, the app's did not.
+ */
+export const DEFAULT_REPEAT_RULE: RepeatRule = 'last';
 
 export interface CourseInput {
   id: string;

@@ -70,8 +70,10 @@ export function ProjectionTab() {
                 onChange={(e) => setRepeatRule(e.target.value as RepeatRule)}
                 aria-describedby="repeat-rule-hint"
               >
-                <option value="highest">{t.repeat.highest}</option>
+                {/* The university's rule first: it is the default, and the
+                    other two are hypotheticals rather than alternatives. */}
                 <option value="last">{t.repeat.last}</option>
+                <option value="highest">{t.repeat.highest}</option>
                 <option value="all">{t.repeat.all}</option>
               </SelectField>
               <p id="repeat-rule-hint" className="mt-2 text-xs leading-relaxed text-muted">
