@@ -132,6 +132,9 @@ const tr = {
     creditLarger: 'Büyük olan (ECTS)',
     creditHint:
       'Bazı satırlarda iki sayı var — genelde Koç kredisi ve ECTS. Koç ortalaması Koç kredisiyle hesaplanır, bu yüzden varsayılan küçük olandır. Önizlemedeki sayılar transkriptindeki “Kredi” sütunuyla uyuşmuyorsa buradan değiştir.',
+    excludedTitle: 'Ortalamaya girmeyen {n} ders atlandı',
+    excludedHint:
+      'Transkriptinde ders kodunun başında “*” olan dersler genel not ortalamasına dahil edilmiyor — tekrar ettiğin bir dersin eski notu ya da ortalamaya hiç girmeyen dersler. Belgedeki kurala uyduk, bu yüzden içe aktarılmadılar.',
     skippedTitle: 'Okunamayan {n} satır',
     skippedHint: 'Bu satırlar içe aktarılmayacak. Aralarında ders varsa elle ekleyebilirsin.',
     duplicateTitle: 'Tekrar eden ders',
@@ -319,6 +322,9 @@ const en: Dict = {
     creditLarger: 'The larger one (ECTS)',
     creditHint:
       'Some rows have two numbers — usually KU credit and ECTS. Koç GPA is weighted by KU credit, so the smaller one is used by default. If the preview does not match the “Credit” column on your transcript, switch it here.',
+    excludedTitle: '{n} courses left out of the average',
+    excludedHint:
+      'Courses whose code is prefixed with “*” on your transcript are not included in the cumulative GPA — an earlier attempt at a course you repeated, or a course that never counts. We followed the document’s own rule, so they were not imported.',
     skippedTitle: '{n} lines could not be read',
     skippedHint: 'These will not be imported. If any of them are courses, add them by hand.',
     duplicateTitle: 'Repeated course',

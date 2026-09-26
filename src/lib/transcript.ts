@@ -53,6 +53,11 @@ export interface TranscriptParseResult {
   /** Course codes seen more than once — usually retakes, worth flagging. */
   duplicateCodes: string[];
   summary: TranscriptSummary;
+  /**
+   * Courses the transcript itself marks as outside the GPA (the "*" prefix on
+   * a YÖK document) and which were therefore left out of the import.
+   */
+  excludedFromGpa: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -271,7 +276,7 @@ function parseCourseLine(line: string, creditColumn: CreditColumn): ParsedCourse
 // Entry point
 // ---------------------------------------------------------------------------
 
-export function parseTranscript(
+function parseGenericTranscript(
   text: string,
   creditColumn: CreditColumn = 'smaller',
 ): TranscriptParseResult {
@@ -332,5 +337,230 @@ export function parseTranscript(
     ambiguousCredits,
     duplicateCodes: [...seenCodes.entries()].filter(([, n]) => n > 1).map(([c]) => c),
     summary,
+    excludedFromGpa: 0,
   };
+}
+
+// ---------------------------------------------------------------------------
+// YÖK / e-Devlet transcript ("Not Döküm Belgesi")
+// ---------------------------------------------------------------------------
+
+/**
+ * The official transcript a Koç student downloads from e-Devlet is laid out for
+ * print, not for reading back, and copying it defeats the line-oriented parser
+ * above completely:
+ *
+ *  - A course's title and its grade are in *different blocks*. Every course
+ *    title in a term is listed first, then the term summary, then one data row
+ *    per course in the same order — so nothing on a title line says what it was
+ *    graded, and the pairing is positional.
+ *  - Each data row is itself split over two lines: "Z İng. - - 3 6 11.1" and
+ *    then "A- G" underneath it.
+ *  - A long title wraps onto further lines.
+ *  - A term can be split across a page break, with a page header in the middle.
+ *  - The document ends with the grading scale — "3.70 A- - Pekiyi-" and a dozen
+ *    rows like it. To a parser looking for "a number and a letter on one line",
+ *    that table reads as a perfect set of courses, which is how an import came
+ *    back holding a D+ and a C- the student had never taken.
+ *
+ * So this format gets its own reader rather than more heuristics bolted onto
+ * the general one.
+ */
+
+/** Enough of the document's furniture to be sure of the format. */
+const YOK_SIGNATURE = /NOT\s*DÖKÜM\s*BELGESİ|\bDNO:|\bGNO:|\bTAKTS:/i;
+
+/** Everything from here on is the grading scale and legend, never courses. */
+const YOK_LEGEND = /^Açıklamalar\s*\(Explanations\)|^Not\s*Baremi\b/i;
+
+/** "2025-2026 Güz Dönemi", "2025-2026 Yaz Okulu". */
+const YOK_SEMESTER = /^\d{4}\s*-\s*\d{4}\s+\S+/;
+
+/** "*COMP 100 BİLGİSAYAR ...", "PHYS 101L GENEL FİZİK LABORUTARI I". */
+const YOK_COURSE = /^(\*?)\s*([A-ZÇĞİÖŞÜ]{2,6})\s*(\d{3}[A-Z]?)\s+(\S.*)$/;
+
+/** "Genel Not Ortalaması" / "Başarılan Kredi", whose value sits a line or two below. */
+const YOK_CGPA_LABEL = /^Genel\s*Not\s*Ortalaması/i;
+const YOK_CREDITS_LABEL = /^Başarılan\s*Kredi(?:\s+(\d{1,3}))?/i;
+
+interface YokEntry {
+  code: string;
+  name: string;
+  /** The transcript's own "*": explicitly outside the GPA. */
+  excluded: boolean;
+}
+
+/**
+ * The national credit (UK) from a data row, or null when the line is not one.
+ *
+ * The row ends with T, U, UK, AKTS and Puan — hours, credit, ECTS and quality
+ * points — each a number or a dash. UK is the one Koç averages on; taking the
+ * ECTS column instead would scale every single course.
+ */
+function yokRowCredits(line: string): number | null {
+  const tokens = line.split(/\s+/).filter(Boolean);
+  if (tokens.length < 7) return null;
+
+  const tail = tokens.slice(-5);
+  if (!tail.every((t) => t === '-' || /^\d+([.,]\d+)?$/.test(t))) return null;
+
+  const uk = tail[2];
+  if (uk === '-') return null;
+  const value = num(uk);
+  return Number.isFinite(value) && value > 0 && value <= 30 ? value : null;
+}
+
+/** A wrapped second line of a course title — letters only, no figures or labels. */
+function isTitleContinuation(line: string): boolean {
+  return (
+    !line.startsWith('(') &&
+    !line.includes(':') &&
+    !/\d/.test(line) &&
+    /[A-ZÇĞİÖŞÜ]/.test(line)
+  );
+}
+
+export function parseYokTranscript(text: string): TranscriptParseResult {
+  const lines = normalize(text)
+    .split(/\r?\n/)
+    .map((l) => l.trim());
+
+  const blocks: { name: string; entries: YokEntry[]; rows: ParsedCourse[] }[] = [];
+  const summary: TranscriptSummary = {};
+  let current: (typeof blocks)[number] | null = null;
+  let pending: YokEntry | null = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!line) continue;
+    if (YOK_LEGEND.test(line)) break;
+
+    if (summary.cumulativeGpa === undefined && YOK_CGPA_LABEL.test(line)) {
+      // The label, "(Cumulative GPA)", a bare ":" and the value are four
+      // separate lines in the PDF's text layer.
+      for (let j = i + 1; j < Math.min(i + 5, lines.length); j++) {
+        const v = num(lines[j]);
+        if (/^\d([.,]\d{1,2})?$/.test(lines[j]) && v >= 0 && v <= 4) {
+          summary.cumulativeGpa = v;
+          break;
+        }
+      }
+    }
+
+    const credits = line.match(YOK_CREDITS_LABEL);
+    if (credits && summary.totalCredits === undefined) {
+      const inline = credits[1] ? Number(credits[1]) : NaN;
+      const value = Number.isFinite(inline) ? inline : num(lines[i + 1] ?? '');
+      if (Number.isFinite(value) && value > 0 && value <= 500) summary.totalCredits = value;
+    }
+
+    if (YOK_SEMESTER.test(line)) {
+      current = { name: line, entries: [], rows: [] };
+      blocks.push(current);
+      pending = null;
+      continue;
+    }
+
+    if (!current) continue; // cover page
+
+    const course = line.match(YOK_COURSE);
+    if (course) {
+      pending = {
+        code: `${course[2].toUpperCase()} ${course[3].toUpperCase()}`,
+        name: course[4].trim(),
+        excluded: course[1] === '*',
+      };
+      current.entries.push(pending);
+      continue;
+    }
+
+    const rowCredits = yokRowCredits(line);
+    if (rowCredits !== null) {
+      // The grade is on the following line, first token: "A- G", "F KLD KL".
+      const gradeToken = (lines[i + 1] ?? '').split(/\s+/).filter(Boolean)[0] ?? '';
+      if (gradeOf(gradeToken)) {
+        current.rows.push({
+          credits: rowCredits,
+          grade: gradeToken.toUpperCase().replace(/[*†‡#]+$/, ''),
+          creditCandidates: [rowCredits],
+          raw: `${line} ${lines[i + 1]}`.trim(),
+        });
+        i++;
+        pending = null;
+        continue;
+      }
+    }
+
+    if (pending && isTitleContinuation(line)) {
+      pending.name = `${pending.name} ${line}`.trim();
+      continue;
+    }
+
+    pending = null;
+  }
+
+  const semesters: ParsedSemester[] = [];
+  const skipped: string[] = [];
+  const seenCodes = new Map<string, number>();
+  let excludedFromGpa = 0;
+
+  for (const block of blocks) {
+    // Titles and data rows are matched by position, so a block where the two
+    // counts disagree cannot be trusted at all — one missing row would shift
+    // every grade after it onto the wrong course. Report, never guess.
+    const pairs = Math.min(block.entries.length, block.rows.length);
+    for (let i = pairs; i < block.entries.length; i++) {
+      skipped.push(`${block.entries[i].code} ${block.entries[i].name}`.slice(0, 160));
+    }
+    for (let i = pairs; i < block.rows.length; i++) {
+      skipped.push(block.rows[i].raw.slice(0, 160));
+    }
+
+    const courses: ParsedCourse[] = [];
+    for (let i = 0; i < pairs; i++) {
+      const entry = block.entries[i];
+      if (entry.excluded) {
+        // "Ders kodunun başında * olan dersler genel not ortalamasına dahil
+        // edilmeyen derslerdir." Importing them anyway would put a removed
+        // retake's F back into an average the university leaves it out of.
+        excludedFromGpa++;
+        continue;
+      }
+      courses.push({ ...block.rows[i], code: entry.code, name: entry.name });
+      seenCodes.set(entry.code, (seenCodes.get(entry.code) ?? 0) + 1);
+    }
+
+    if (courses.length > 0) semesters.push({ name: cleanSemesterName(block.name), courses });
+  }
+
+  return {
+    semesters,
+    skipped,
+    totalCourses: semesters.reduce((n, s) => n + s.courses.length, 0),
+    ambiguousCredits: 0, // UK is a named column here — nothing to disambiguate.
+    duplicateCodes: [...seenCodes.entries()].filter(([, n]) => n > 1).map(([c]) => c),
+    summary,
+    excludedFromGpa,
+  };
+}
+
+/**
+ * Parse a transcript, picking the reader that fits what was pasted.
+ *
+ * The YÖK document announces itself clearly enough ("NOT DÖKÜM BELGESİ", the
+ * DNO/GNO/TAKTS summary labels) that detection needs no guessing, and its
+ * layout is different enough that the general reader cannot be stretched to
+ * cover it.
+ */
+export function parseTranscript(
+  text: string,
+  creditColumn: CreditColumn = 'smaller',
+): TranscriptParseResult {
+  if (YOK_SIGNATURE.test(text)) {
+    const yok = parseYokTranscript(text);
+    // A document that looked like a YÖK transcript but yielded nothing is more
+    // likely a partial copy; let the general reader have a go at it.
+    if (yok.totalCourses > 0) return yok;
+  }
+  return parseGenericTranscript(text, creditColumn);
 }
