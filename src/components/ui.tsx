@@ -1,5 +1,13 @@
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
+import { useState } from 'react';
 import { cx } from '../lib/cx';
+import {
+  formatDecimal,
+  parseDecimalInput,
+  separatorOf,
+  stepDecimal,
+  type DecimalSeparator,
+} from '../lib/decimal';
 
 export function Card({
   children,
@@ -61,38 +69,82 @@ export function NumberField({
   onChange,
   min,
   max,
-  step = 'any',
+  step = 1,
   placeholder,
   className,
+  onBlur,
+  onKeyDown,
   ...rest
 }: {
   value: number | '';
   onChange: (v: number | '') => void;
   min?: number;
   max?: number;
-  step?: number | 'any';
+  /** How far ArrowUp/ArrowDown move the value on a hardware keyboard. */
+  step?: number;
   placeholder?: string;
   className?: string;
 } & Omit<InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange' | 'min' | 'max' | 'step'>) {
+  // Text, not `type="number"`: a Turkish phone keyboard's only decimal key is
+  // ",", which a number input rejects by emptying itself — "3,5" could never
+  // be typed. `inputMode="decimal"` still brings up the numeric keypad.
+  //
+  // While the field is being edited, the user's own text is shown as typed:
+  // "3," is a perfectly good half of "3,5" even though it isn't a number yet.
+  // `null` means "not editing — show the stored value".
+  const [draft, setDraft] = useState<string | null>(null);
+  // Answer in the user's own separator once they've used one.
+  const [sep, setSep] = useState<DecimalSeparator>('.');
+
+  // Bounds are enforced here, not left to the browser: "1e9 credits" or a
+  // GPA above 4 must never reach the calculations.
+  const clamp = (n: number) => Math.min(max ?? Infinity, Math.max(min ?? -Infinity, n));
+
+  const commit = (n: number, s: DecimalSeparator) => {
+    setDraft(formatDecimal(n, s));
+    onChange(n);
+  };
+
   return (
     <input
       {...rest}
-      type="number"
+      type="text"
       inputMode="decimal"
-      value={value}
-      min={min}
-      max={max}
-      step={step}
+      autoComplete="off"
+      autoCorrect="off"
+      spellCheck={false}
+      value={draft ?? formatDecimal(value, sep)}
       placeholder={placeholder}
       onChange={(e) => {
-        const raw = e.target.value;
-        if (raw === '') return onChange('');
-        const n = Number(raw);
-        // `min`/`max` on a number input are advisory — typing straight past them
-        // is allowed, and "1e9 credits" or a negative GPA would sail through.
-        if (!Number.isFinite(n)) return;
-        const clamped = Math.min(max ?? Infinity, Math.max(min ?? -Infinity, n));
-        onChange(clamped);
+        const raw = e.target.value.replace(/\s+/g, '');
+        const parsed = parseDecimalInput(raw);
+        // Not a number in progress ("3,5,", a letter, a minus sign): refuse
+        // the keystroke and keep what was there, instead of wiping the field.
+        if (parsed === null) return;
+        const s = separatorOf(raw) ?? sep;
+        setSep(s);
+        if (parsed === '') {
+          setDraft(raw);
+          onChange('');
+          return;
+        }
+        const clamped = clamp(parsed);
+        if (clamped !== parsed) return commit(clamped, s);
+        setDraft(raw);
+        onChange(parsed);
+      }}
+      onKeyDown={(e) => {
+        onKeyDown?.(e);
+        if (e.defaultPrevented || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+        // The arrow-key stepping a number input used to give for free.
+        e.preventDefault();
+        const base = value === '' ? (min ?? 0) : value;
+        commit(clamp(stepDecimal(base, step, e.key === 'ArrowUp' ? 1 : -1)), sep);
+      }}
+      onBlur={(e) => {
+        // Drop the half-typed form ("3," → "3") and show what was stored.
+        setDraft(null);
+        onBlur?.(e);
       }}
       className={cx(inputBase, 'num', className)}
     />

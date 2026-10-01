@@ -150,17 +150,6 @@
     outline-offset: 2px;
     border-radius: 6px;
   }
-
-  /* Remove number input spinners for a cleaner look */
-  input[type='number']::-webkit-outer-spin-button,
-  input[type='number']::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-  }
-  input[type='number'] {
-    -moz-appearance: textfield;
-    appearance: textfield;
-  }
 }
 
 @layer utilities {
